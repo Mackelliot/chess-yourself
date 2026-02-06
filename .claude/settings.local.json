@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(uvicorn:*)",
+      "Bash(npm run dev:*)",
+      "Bash(python3 -m pip:*)",
+      "Bash(python3 -m uvicorn:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm search:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

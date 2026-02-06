@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@keyframes ai-thinking-pulse {
+  0%, 100% { box-shadow: 12px 12px 0px 0px rgba(0,0,0,1); }
+  50% { box-shadow: 12px 12px 0px 0px rgba(0,0,0,1), 0 0 20px 4px rgba(37,99,235,0.4); }
+}
+
+.board-ai-thinking {
+  animation: ai-thinking-pulse 2s ease-in-out infinite;
+  border-color: #2563eb;
+}
+
+.board-player-turn {
+  border-color: #000;
+  box-shadow: 12px 12px 0px 0px rgba(0,0,0,1);
+}
