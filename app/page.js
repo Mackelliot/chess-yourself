@@ -52,7 +52,7 @@ const THINKING_MESSAGES = [
   "Teaching AI to play like a human (scary)...",
   "This clone is going to be terrifying...",
   "Extracting pure chess energy...",
-  "Almost done, your clone is stretching...",
+  "Almost done, the clone is stretching...",
 ];
 
 const SHAPE_KEYFRAMES = `
@@ -68,10 +68,17 @@ const SHAPE_KEYFRAMES = `
 }
 `;
 
+const LONG_WAIT_HINTS = [
+  'Almost done — turns out you\'re quite the interesting player. Our AI is taking an extra look.',
+  'Hang tight — your game history is deeper than most. The clone is studying hard.',
+  'Still crunching. You\'ve got a lot of games in there. The clone wants to get this right.',
+];
+
 const ThinkingLoader = () => {
   const [messageIndex, setMessageIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
+  const longHintRef = useRef(null);
 
   useEffect(() => {
     const msgInterval = setInterval(() => {
@@ -83,7 +90,21 @@ const ThinkingLoader = () => {
     return () => { clearInterval(msgInterval); clearInterval(timerInterval); };
   }, []);
 
-  const displayTime = elapsed > 0 ? `${elapsed}s` : null;
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const displayTime = elapsed > 0
+    ? minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
+    : null;
+
+  let hint = null;
+  if (elapsed >= 120) {
+    if (!longHintRef.current) {
+      longHintRef.current = LONG_WAIT_HINTS[Math.floor(Math.random() * LONG_WAIT_HINTS.length)];
+    }
+    hint = longHintRef.current;
+  } else if (elapsed >= 30) {
+    hint = 'This usually takes 1\u20132 minutes.';
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 py-6">
@@ -101,6 +122,9 @@ const ThinkingLoader = () => {
       </p>
       {displayTime && (
         <span className="font-mono text-xs text-gray-400">{displayTime}</span>
+      )}
+      {hint && (
+        <p className="font-mono text-xs text-gray-400 text-center max-w-xs">{hint}</p>
       )}
     </div>
   );
@@ -333,8 +357,49 @@ const MoveList = ({ moves }) => {
   );
 };
 
+const GLITCH_CHARS = ['x', '*', 'o', '+', '·', '×', '░'];
+
+const AvatarGlitchChar = () => {
+  const [glyph, setGlyph] = useState(null);
+
+  useEffect(() => {
+    const schedule = () => {
+      const delay = 3000 + Math.random() * 8000;
+      return setTimeout(() => {
+        const char = GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+        const top = 10 + Math.random() * 75;
+        const left = 10 + Math.random() * 75;
+        setGlyph({ char, top, left });
+        const clearTimer = setTimeout(() => setGlyph(null), 300 + Math.random() * 400);
+        const nextTimer = schedule();
+        return () => { clearTimeout(clearTimer); clearTimeout(nextTimer); };
+      }, delay);
+    };
+    const timer = schedule();
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!glyph) return null;
+
+  return (
+    <span
+      className="absolute font-mono text-blue-300/40 pointer-events-none select-none"
+      style={{
+        top: `${glyph.top}%`,
+        left: `${glyph.left}%`,
+        fontSize: '10px',
+        fontWeight: 700,
+        zIndex: 4,
+        textShadow: '0 0 2px rgba(37,99,235,0.3)',
+      }}
+    >
+      {glyph.char}
+    </span>
+  );
+};
+
 const AvatarImage = ({ avatarUrl, username, size = 16 }) => (
-  <div className={`relative w-${size} h-${size} shrink-0 crt-container rounded overflow-hidden`}
+  <div className={`relative shrink-0 crt-container rounded overflow-hidden`}
     style={{ width: size * 4, height: size * 4 }}
   >
     {avatarUrl ? (
@@ -342,6 +407,7 @@ const AvatarImage = ({ avatarUrl, username, size = 16 }) => (
         <img src={avatarUrl} alt={username} className="w-full h-full object-cover crt-avatar" />
         <div className="absolute inset-0 bg-blue-600/50 mix-blend-color" />
         <div className="crt-scanlines" />
+        <AvatarGlitchChar />
       </>
     ) : (
       <div className="w-full h-full bg-blue-600 flex items-center justify-center">
@@ -356,7 +422,7 @@ const AICloneChat = ({ message, avatarUrl, username }) => {
     <>
       {/* Mobile: compact inline bar */}
       <div className="lg:hidden border-4 border-black bg-white flex items-center gap-3 px-3 py-3">
-        <AvatarImage avatarUrl={avatarUrl} username={username} size={10} />
+        <AvatarImage avatarUrl={avatarUrl} username={username} size={20} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <p className="font-mono text-xs font-bold truncate">{username}</p>
@@ -380,7 +446,7 @@ const AICloneChat = ({ message, avatarUrl, username }) => {
         </div>
 
         <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
-          <AvatarImage avatarUrl={avatarUrl} username={username} size={16} />
+          <AvatarImage avatarUrl={avatarUrl} username={username} size={32} />
           <div>
             <p className="font-mono text-xs font-bold truncate max-w-[140px]">{username}</p>
             <p className="font-mono text-[10px] text-blue-600">CLONE ACTIVE</p>
@@ -481,7 +547,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
     } else {
       text = generateStockfishMessage(data.move);
     }
-    if (text) setChatMessage({ type: 'taunt', text });
+    setChatMessage(text ? { type: 'taunt', text } : null);
   }, [ghostBook]);
 
   const handlePlayerMove = React.useCallback((data) => {
@@ -709,7 +775,7 @@ const GameOverModal = ({ gameState, onRematch, onExit }) => {
   let title, message, accent;
   if (playerWins) {
     title = 'YOU WIN';
-    message = 'You defeated your own clone. Time to raise the bar.';
+    message = 'You defeated the clone. Time to raise the bar.';
     accent = 'border-green-500';
   } else if (gameState.result === 'resignation') {
     title = 'YOU RESIGNED';
@@ -717,7 +783,7 @@ const GameOverModal = ({ gameState, onRematch, onExit }) => {
     accent = 'border-red-500';
   } else if (playerLoses) {
     title = 'YOU LOSE';
-    message = 'Your clone got the better of you this time.';
+    message = 'The clone got the better of you this time.';
     accent = 'border-red-500';
   } else {
     title = 'DRAW';

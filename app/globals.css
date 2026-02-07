@@ -36,19 +36,19 @@
   background: linear-gradient(
     0deg,
     transparent 0%,
-    rgba(37, 99, 235, 0.06) 40%,
-    rgba(37, 99, 235, 0.12) 50%,
-    rgba(37, 99, 235, 0.06) 60%,
+    rgba(37, 99, 235, 0.08) 40%,
+    rgba(37, 99, 235, 0.15) 50%,
+    rgba(37, 99, 235, 0.08) 60%,
     transparent 100%
   );
-  background-size: 100% 40%;
-  animation: crt-sweep 3s linear infinite;
+  background-size: 100% 30%;
+  animation: crt-sweep 2.5s ease-in-out infinite alternate;
   z-index: 3;
 }
 
 @keyframes crt-sweep {
-  0% { background-position: 0 -40%; }
-  100% { background-position: 0 140%; }
+  0% { background-position: 0 -30%; }
+  100% { background-position: 0 130%; }
 }
 
 /* CRT Container glow */
