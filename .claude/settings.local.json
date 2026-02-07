@@ -24,7 +24,12 @@
       "Bash(git -C /Users/grantelliot/chess-yourself remote set-url:*)",
       "Bash(git -C /Users/grantelliot/chess-yourself remote -v)",
       "Bash(git -C /Users/grantelliot/chess-yourself push -u origin main)",
-      "Bash(gh auth status:*)"
+      "Bash(gh auth status:*)",
+      "Bash(git -C /Users/grantelliot/chess-yourself stash pop)",
+      "Bash(git -C /Users/grantelliot/chess-yourself status)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

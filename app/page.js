@@ -333,15 +333,7 @@ const MoveList = ({ moves }) => {
   );
 };
 
-const AICloneChat = ({ messages, avatarUrl, username }) => {
-  const listRef = useRef(null);
-
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [messages]);
-
+const AICloneChat = ({ message, avatarUrl, username }) => {
   return (
     <div className="border-4 border-black bg-white flex flex-col h-full">
       <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b-2 border-black/10 flex justify-between items-center shrink-0">
@@ -351,13 +343,13 @@ const AICloneChat = ({ messages, avatarUrl, username }) => {
 
       {/* Avatar Section */}
       <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
-        <div className="relative w-10 h-10 shrink-0 crt-container rounded overflow-hidden crt-glitch">
+        <div className="relative w-16 h-16 shrink-0 crt-container rounded overflow-hidden">
           {avatarUrl ? (
             <>
               <img
                 src={avatarUrl}
                 alt={username}
-                className="w-full h-full object-cover crt-avatar"
+                className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-blue-600/30 mix-blend-multiply" />
               <div className="crt-scanlines" />
@@ -374,23 +366,15 @@ const AICloneChat = ({ messages, avatarUrl, username }) => {
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={listRef} className="overflow-y-auto flex-1 font-mono text-xs p-3 space-y-2">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`py-1.5 px-2 rounded leading-relaxed ${
-              msg.type === 'system'
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                : msg.type === 'reaction'
-                ? 'text-gray-500 italic'
-                : 'text-gray-800'
-            }`}
-          >
-            {msg.type === 'taunt' && <span className="text-blue-600 mr-1">&gt;</span>}
-            {msg.text}
+      {/* Chat Bubble */}
+      <div className="flex-1 flex items-start p-4">
+        {message && (
+          <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[95%]">
+            <p className="font-mono text-sm leading-relaxed text-gray-900">
+              {message.text}
+            </p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -457,33 +441,31 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
   const [gameState, setGameState] = useState({ turn: 'w', moves: [], isGameOver: false, result: null });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [boardKey, setBoardKey] = useState(0);
-  const [chatMessages, setChatMessages] = useState([]);
+  const [chatMessage, setChatMessage] = useState(null);
   const [viewIndex, setViewIndex] = useState(null);
   const prevMoveCountRef = useRef(0);
   const gameOverCommentedRef = useRef(false);
 
   // Send intro message on mount
   useEffect(() => {
-    setChatMessages([{ type: 'system', text: generateIntroMessage() }]);
+    setChatMessage({ type: 'system', text: generateIntroMessage() });
   }, []);
 
-  const addChatMessage = (msg) => {
-    if (msg) setChatMessages(prev => [...prev, msg]);
-  };
-
   const handleAIMove = React.useCallback((data) => {
+    let text;
     if (data.moveNumber === 1) {
-      addChatMessage({ type: 'taunt', text: generateFirstMoveMessage(data.move, ghostBook) });
+      text = generateFirstMoveMessage(data.move, ghostBook);
     } else if (data.source === 'ghost') {
-      addChatMessage({ type: 'taunt', text: generateGhostMoveMessage(data.move, data.ghostData) });
+      text = generateGhostMoveMessage(data.move, data.ghostData);
     } else {
-      addChatMessage({ type: 'taunt', text: generateStockfishMessage(data.move) });
+      text = generateStockfishMessage(data.move);
     }
+    if (text) setChatMessage({ type: 'taunt', text });
   }, [ghostBook]);
 
   const handlePlayerMove = React.useCallback((data) => {
-    const reaction = generatePlayerMoveReaction(data);
-    if (reaction) addChatMessage({ type: 'reaction', text: reaction });
+    const text = generatePlayerMoveReaction(data);
+    if (text) setChatMessage({ type: 'reaction', text });
   }, []);
 
   const handleRematch = () => {
@@ -491,14 +473,14 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
     prevMoveLenRef.current = 0;
     gameOverCommentedRef.current = false;
     setViewIndex(null);
-    setChatMessages([{ type: 'system', text: generateIntroMessage() }]);
+    setChatMessage({ type: 'system', text: generateIntroMessage() });
     setBoardKey(k => k + 1);
   };
 
   const handleResign = () => {
     if (gameState.isGameOver) return;
     gameOverCommentedRef.current = true;
-    addChatMessage({ type: 'system', text: generateResignMessage() });
+    setChatMessage({ type: 'system', text: generateResignMessage() });
     setGameState(prev => ({ ...prev, isGameOver: true, result: 'resignation', turn: 'b' }));
   };
 
@@ -572,7 +554,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
 
     if (gameState.isGameOver && !gameOverCommentedRef.current) {
       gameOverCommentedRef.current = true;
-      addChatMessage({ type: 'system', text: generateGameOverMessage(gameState.result, gameState.turn) });
+      setChatMessage({ type: 'system', text: generateGameOverMessage(gameState.result, gameState.turn) });
     }
   }, [gameState.moves, soundEnabled, gameState.turn, gameState.isGameOver, gameState.result]);
 
@@ -673,7 +655,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
 
         {/* AI Clone Chat — right on desktop, below notation on mobile */}
         <div className="w-full lg:w-64 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)] order-3">
-          <AICloneChat messages={chatMessages} avatarUrl={avatarUrl} username={username} />
+          <AICloneChat message={chatMessage} avatarUrl={avatarUrl} username={username} />
         </div>
       </div>
 
