@@ -22,6 +22,81 @@ const useInterval = (callback, delay) => {
 };
 
 /**
+ * THINKING LOADER
+ */
+const THINKING_MESSAGES = [
+  "Analyzing your games...",
+  "Studying your opening repertoire...",
+  "Learning your questionable sacrifices...",
+  "Memorizing your favorite blunders...",
+  "Reverse-engineering your brilliance...",
+  "Downloading your chess trauma...",
+  "Judging your endgame technique...",
+  "Finding patterns in your chaos...",
+  "Your Sicilian needs work, just saying...",
+  "Cataloging every premove gone wrong...",
+  "Training your digital doppelganger...",
+  "Building a clone worthy of your ELO...",
+  "Absorbing decades of chess theory...",
+  "Compiling your greatest hits (and misses)...",
+  "Teaching AI to play like a human (scary)...",
+  "This clone is going to be terrifying...",
+  "Extracting pure chess energy...",
+  "Almost done, your clone is stretching...",
+];
+
+const SHAPE_KEYFRAMES = `
+@keyframes morph-shape {
+  0%   { border-radius: 4px;  transform: rotate(0deg) scale(1); }
+  15%  { border-radius: 50%;  transform: rotate(45deg) scale(0.9); }
+  30%  { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: rotate(90deg) scale(1.05); }
+  45%  { border-radius: 50% 20% 50% 20%; transform: rotate(135deg) scale(0.95); }
+  60%  { border-radius: 20% 50% 20% 50% / 50% 20% 50% 20%; transform: rotate(225deg) scale(1.1); }
+  75%  { border-radius: 50%; transform: rotate(315deg) scale(0.9); }
+  85%  { border-radius: 10% 40% 60% 20% / 50% 30% 40% 60%; transform: rotate(350deg) scale(1.05); }
+  100% { border-radius: 4px;  transform: rotate(360deg) scale(1); }
+}
+`;
+
+const ThinkingLoader = () => {
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    const msgInterval = setInterval(() => {
+      setMessageIndex(prev => (prev + 1) % THINKING_MESSAGES.length);
+    }, 3000);
+    const timerInterval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => { clearInterval(msgInterval); clearInterval(timerInterval); };
+  }, []);
+
+  const displayTime = elapsed > 0 ? `${elapsed}s` : null;
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-6">
+      <style>{SHAPE_KEYFRAMES}</style>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          backgroundColor: '#2563eb',
+          animation: 'morph-shape 4s ease-in-out infinite',
+        }}
+      />
+      <p className="font-mono text-sm text-gray-700 text-center animate-pulse">
+        {THINKING_MESSAGES[messageIndex]}
+      </p>
+      {displayTime && (
+        <span className="font-mono text-xs text-gray-400">{displayTime}</span>
+      )}
+    </div>
+  );
+};
+
+/**
  * PIXEL FONT DATA
  */
 const CHAR_MAP = {
@@ -575,18 +650,19 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
                     <label className="font-mono text-xs font-bold uppercase text-gray-500">
                       {platform === 'chesscom' ? 'Chess.com' : 'Lichess'} Username
                     </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. MagnusCarlsen"
-                      value={inputValue}
-                      onChange={(e) => { setInputValue(e.target.value); setValidated(false); setError(''); }}
-                      className="w-full p-4 border-2 border-black font-mono focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white"
-                    />
-                    {validated && (
-                      <div className="bg-green-100 border-l-4 border-green-500 p-3 flex items-center gap-2 text-green-700 font-mono text-xs">
-                        <Check size={14} />
-                        User found! Loading ghost data...
+                    {validated || isLoading ? (
+                      <div className="w-full p-4 border-2 border-green-500 bg-green-50 font-mono flex items-center justify-between">
+                        <span className="font-bold text-green-800">{inputValue}</span>
+                        <Check size={18} className="text-green-600" />
                       </div>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="e.g. MagnusCarlsen"
+                        value={inputValue}
+                        onChange={(e) => { setInputValue(e.target.value); setValidated(false); setError(''); }}
+                        className="w-full p-4 border-2 border-black font-mono focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white"
+                      />
                     )}
                   </div>
                 )}
@@ -626,17 +702,16 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-4 bg-black text-white p-4 font-mono font-bold uppercase tracking-widest border-2 border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(59,130,246,1)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-            >
-              {isLoading ? (
-                <>Processing<span className="animate-pulse">...</span></>
-              ) : (
-                <>Start Engine <ArrowRight size={18} /></>
-              )}
-            </button>
+            {isLoading ? (
+              <ThinkingLoader />
+            ) : (
+              <button
+                type="submit"
+                className="mt-4 bg-black text-white p-4 font-mono font-bold uppercase tracking-widest border-2 border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(59,130,246,1)] transition-all duration-200 flex justify-center items-center gap-2"
+              >
+                Start Engine <ArrowRight size={18} />
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -722,16 +797,6 @@ export default function Home() {
   const [usernameInput, setUsernameInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [loadingProgress, setLoadingProgress] = useState(0);
-
-  useInterval(() => {
-    if (isLoading) {
-      setLoadingProgress(prev => {
-        const next = prev + Math.random() * 3;
-        return next > 95 ? 95 : next;
-      });
-    }
-  }, isLoading ? 100 : null);
 
   const handleGameStart = ({ username, ghostBook: gb }) => {
     setActiveUsername(username);
@@ -744,7 +809,6 @@ export default function Home() {
     e.preventDefault();
     initAudio();
     setError('');
-    setLoadingProgress(0);
 
     if (platform === 'default') {
       handleGameStart({ mode: 'default', username: 'Default Clone', ghostBook: null, platform });
@@ -903,30 +967,16 @@ export default function Home() {
                       </div>
                     )}
 
-                    <button 
-                      type="submit" 
-                      disabled={isLoading}
-                      className={`bg-black text-white p-4 font-mono font-bold uppercase tracking-widest border-2 border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(59,130,246,1)] transition-all duration-200 disabled:cursor-not-allowed flex justify-center items-center gap-2 ${isLoading ? 'opacity-100' : 'disabled:opacity-50'}`}
-                    >
-                      {isLoading ? (
-                        <div className="w-full flex flex-col gap-2">
-                          <div className="flex justify-between items-center text-[10px] leading-none font-mono">
-                            <span className="animate-pulse">ANALYZING GAMES</span>
-                            <span>{Math.floor(loadingProgress)}%</span>
-                          </div>
-                          <div className="flex gap-[2px] w-full h-2">
-                            {[...Array(20)].map((_, i) => (
-                              <div 
-                                key={i}
-                                className={`flex-1 transition-colors duration-75 ${i < (loadingProgress / 100) * 20 ? 'bg-blue-600' : 'bg-gray-800'}`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <>Play Against Clone <ArrowRight size={18} /></>
-                      )}
-                    </button>
+                    {isLoading ? (
+                      <ThinkingLoader />
+                    ) : (
+                      <button
+                        type="submit"
+                        className="bg-black text-white p-4 font-mono font-bold uppercase tracking-widest border-2 border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(59,130,246,1)] transition-all duration-200 flex justify-center items-center gap-2"
+                      >
+                        Play Against Clone <ArrowRight size={18} />
+                      </button>
+                    )}
                   </form>
                 </div>
                 
