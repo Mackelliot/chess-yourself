@@ -337,7 +337,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
         {/* Board Column */}
         <div className="flex-1 flex flex-col items-center lg:items-end w-full gap-3">
           <div className={`w-full max-w-[550px] border-4 bg-[#FDFBF7] transition-all duration-500 ${
-            gameState.isGameOver ? 'border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]' : isWhiteTurn ? 'border-black' : 'board-player-turn'
+            gameState.isGameOver ? 'border-black' : isWhiteTurn ? 'border-black' : 'board-player-turn'
           }`}>
             <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} />
           </div>

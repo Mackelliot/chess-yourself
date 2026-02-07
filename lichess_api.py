@@ -14,7 +14,7 @@ def get_games_by_color(username: str, color: str) -> list[str]:
     try:
         response = requests.get(
             f"https://lichess.org/api/games/user/{username}",
-            params={'max': 1000, 'pgnInBody': 'true'},
+            params={'max': 500, 'pgnInBody': 'true'},
             headers=headers
         )
         response.raise_for_status()

@@ -25,6 +25,32 @@ export function makeGhostMove(fen, ghostBook) {
   return null;
 }
 
+// --- Illegal Move Sound ---
+
+let _audioCtx = null;
+function playIllegalMoveSound() {
+  if (!_audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    _audioCtx = new AC();
+  }
+  if (_audioCtx.state !== 'running') _audioCtx.resume().catch(() => {});
+  const now = _audioCtx.currentTime + 0.02;
+  const o = _audioCtx.createOscillator();
+  const g = _audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(200, now);
+  o.frequency.linearRampToValueAtTime(150, now + 0.12);
+  o.connect(g);
+  g.connect(_audioCtx.destination);
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.06, now + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  o.start(now);
+  o.stop(now + 0.12);
+  o.onended = () => { o.disconnect(); g.disconnect(); };
+}
+
 // --- Lichess mpchess Piece Set ---
 
 const LICHESS_PIECE_CDN = 'https://lichess1.org/assets/piece/icpieces';
@@ -39,6 +65,48 @@ const customPieces = Object.fromEntries(
     )],
   ])
 );
+
+// --- Captured Pieces ---
+
+const PIECE_ORDER = ['q', 'r', 'b', 'n', 'p'];
+const STARTING_PIECES = { p: 8, r: 2, n: 2, b: 2, q: 1, k: 1 };
+
+function getCapturedPieces(game) {
+  const board = game.board();
+  const count = { w: { p: 0, r: 0, n: 0, b: 0, q: 0, k: 0 }, b: { p: 0, r: 0, n: 0, b: 0, q: 0, k: 0 } };
+
+  for (const row of board) {
+    for (const piece of row) {
+      if (piece) count[piece.color][piece.type]++;
+    }
+  }
+
+  const captured = { w: [], b: [] };
+  for (const type of PIECE_ORDER) {
+    for (let i = 0; i < Math.max(0, STARTING_PIECES[type] - count.w[type]); i++) captured.w.push(type);
+    for (let i = 0; i < Math.max(0, STARTING_PIECES[type] - count.b[type]); i++) captured.b.push(type);
+  }
+  return captured;
+}
+
+function CapturedRow({ pieces, color }) {
+  if (pieces.length === 0) return <div style={{ height: 24 }} />;
+  const prefix = color === 'w' ? 'w' : 'b';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', height: 24, gap: 0 }}>
+      {pieces.map((type, i) => (
+        <img
+          key={`${type}-${i}`}
+          src={`${LICHESS_PIECE_CDN}/${prefix}${type.toUpperCase()}.svg`}
+          width={22}
+          height={22}
+          alt={`${prefix}${type}`}
+          style={{ opacity: 0.85 }}
+        />
+      ))}
+    </div>
+  );
+}
 
 // --- End Pieces ---
 
@@ -216,8 +284,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
     };
   }, [game, ghostBook, stockfish, playerColor, engineReady]);
 
-  function onDrop(sourceSquare, targetSquare) {
-    // Prevent moves when it's not the player's turn
+  function tryMove(sourceSquare, targetSquare) {
     const playerTurn = playerColor === 'white' ? 'w' : 'b';
     if (game.turn() !== playerTurn) return false;
 
@@ -232,9 +299,60 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       if (move === null) return false;
 
       commitMove(gameCopy, move.san);
+      setSelectedSquare(null);
+      setLegalMoveSquares({});
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  function onDrop(sourceSquare, targetSquare) {
+    const moved = tryMove(sourceSquare, targetSquare);
+    if (!moved) playIllegalMoveSound();
+    return moved;
+  }
+
+  // Click-to-move
+  const [selectedSquare, setSelectedSquare] = useState(null);
+  const [legalMoveSquares, setLegalMoveSquares] = useState({});
+
+  function onSquareClick(square) {
+    const playerTurn = playerColor === 'white' ? 'w' : 'b';
+    if (game.turn() !== playerTurn || game.isGameOver()) return;
+
+    // If a piece is already selected, try to move to the clicked square
+    if (selectedSquare) {
+      const moved = tryMove(selectedSquare, square);
+      if (moved) return;
+      // If the move failed and they didn't click another of their own pieces, play illegal sound
+      const piece = game.get(square);
+      if (!piece || piece.color !== playerTurn) {
+        playIllegalMoveSound();
+        setSelectedSquare(null);
+        setLegalMoveSquares({});
+        return;
+      }
+    }
+
+    // Select a piece (only player's own pieces)
+    const piece = game.get(square);
+    if (piece && piece.color === playerTurn) {
+      setSelectedSquare(square);
+      const moves = game.moves({ square, verbose: true });
+      const highlights = {};
+      moves.forEach((m) => {
+        highlights[m.to] = {
+          background: game.get(m.to)
+            ? 'radial-gradient(circle, rgba(0,0,0,0.3) 85%, transparent 85%)'
+            : 'radial-gradient(circle, rgba(0,0,0,0.2) 25%, transparent 25%)',
+          borderRadius: '50%',
+        };
+      });
+      setLegalMoveSquares(highlights);
+    } else {
+      setSelectedSquare(null);
+      setLegalMoveSquares({});
     }
   }
 
@@ -274,6 +392,14 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
     justifyContent: 'center',
   };
 
+  const captured = getCapturedPieces(game);
+  // Top of board = opponent side, bottom = player side
+  // Show pieces each side has captured (opponent's pieces they took)
+  const topCaptured = isBlack ? captured.b : captured.w;   // white (AI) captured these black pieces
+  const bottomCaptured = isBlack ? captured.w : captured.b; // black (player) captured these white pieces
+  const topColor = isBlack ? 'b' : 'w';
+  const bottomColor = isBlack ? 'w' : 'b';
+
   return (
     <div style={{ width: '100%' }}>
       <style>{`
@@ -282,6 +408,9 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           to { opacity: 1; transform: translate(-50%, -140%); }
         }
       `}</style>
+      <div style={{ paddingLeft: 20, marginBottom: 4 }}>
+        <CapturedRow pieces={topCaptured} color={topColor} />
+      </div>
       <div
         style={{
           display: 'grid',
@@ -301,11 +430,17 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           <Chessboard
             position={game.fen()}
             onPieceDrop={onDrop}
+            onSquareClick={onSquareClick}
             boardOrientation={playerColor}
             customPieces={customPieces}
             customLightSquareStyle={{ backgroundColor: '#EBF0F7' }}
             customDarkSquareStyle={{ backgroundColor: '#2563eb' }}
             customDropSquareStyle={{ boxShadow: 'inset 0 0 0 4px #2563eb' }}
+            customSquareStyles={{
+              ...(selectedSquare ? { [selectedSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' } } : {}),
+              ...legalMoveSquares,
+            }}
+            isDraggablePiece={({ piece }) => piece.startsWith(playerColor === 'white' ? 'w' : 'b')}
             animationDuration={200}
             showBoardNotation={false}
           />
@@ -351,6 +486,9 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
             <div key={f} style={{ ...coordStyle, flex: 1 }}>{f}</div>
           ))}
         </div>
+      </div>
+      <div style={{ paddingLeft: 20, marginTop: 4 }}>
+        <CapturedRow pieces={bottomCaptured} color={bottomColor} />
       </div>
     </div>
   );
