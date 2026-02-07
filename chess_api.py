@@ -58,7 +58,7 @@ def get_games_by_color(username: str, color: str) -> list[str]:
                     if game.get('pgn'):
                         filtered_pgns.append(game.get('pgn'))
 
-                if len(filtered_pgns) >= 500:
+                if len(filtered_pgns) >= 1000:
                     return filtered_pgns
 
         except requests.RequestException as e:

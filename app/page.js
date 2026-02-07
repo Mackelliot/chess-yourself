@@ -950,13 +950,20 @@ export default function Home() {
                       </div>
                     ) : (
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          placeholder={platform === 'chesscom' ? "Chess.com Username" : "Lichess Username"}
-                          value={usernameInput}
-                          onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
-                          className="w-full p-4 border-2 border-black font-mono text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-gray-50 placeholder:text-gray-400"
-                        />
+                        {isLoading ? (
+                          <div className="w-full p-4 border-2 border-green-500 bg-green-50 font-mono text-lg flex items-center justify-between">
+                            <span className="font-bold text-green-800">{usernameInput}</span>
+                            <Check size={18} className="text-green-600" />
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder={platform === 'chesscom' ? "Chess.com Username" : "Lichess Username"}
+                            value={usernameInput}
+                            onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
+                            className="w-full p-4 border-2 border-black font-mono text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-gray-50 placeholder:text-gray-400"
+                          />
+                        )}
                       </div>
                     )}
 
