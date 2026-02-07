@@ -79,11 +79,7 @@ const PixelHeader = () => {
       <div className="mt-6 md:mt-0 max-w-xs text-xs md:text-sm font-medium font-mono leading-tight text-right md:text-right text-gray-600">
         <p>
           AI-DRIVEN PLAYSTYLE CLONING.<br/>
-          VERSION 2.0.4 (BETA)<br/>
-          <span className="inline-flex items-center gap-1 text-green-600 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-green-500"></span>
-            SYSTEM ONLINE
-          </span>
+          VERSION 2.0.4 (BETA)
         </p>
       </div>
     </header>
@@ -836,7 +832,6 @@ export default function Home() {
                     Your friends are too easy. The engines are too robotic. 
                   </p>
                   <p className="font-mono text-sm md:text-base text-gray-600 mb-8 border-l-4 border-blue-500 pl-4">
-                    // ERROR: OPPONENT_SKILL_NOT_FOUND<br/>
                     Our neural engine analyzes your game history to build the ultimate opponent: <strong className="text-black">An AI clone of yourself.</strong>
                   </p>
                 </div>
@@ -916,7 +911,7 @@ export default function Home() {
                       {isLoading ? (
                         <div className="w-full flex flex-col gap-2">
                           <div className="flex justify-between items-center text-[10px] leading-none font-mono">
-                            <span className="animate-pulse">ANALYZING_GAMES</span>
+                            <span className="animate-pulse">ANALYZING GAMES</span>
                             <span>{Math.floor(loadingProgress)}%</span>
                           </div>
                           <div className="flex gap-[2px] w-full h-2">
@@ -942,10 +937,6 @@ export default function Home() {
                   >
                     Upload PGN / Advanced Options
                   </button>
-                  <div className="flex items-center gap-2 text-xs font-mono text-gray-500">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>SYSTEM ONLINE</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -967,8 +958,8 @@ export default function Home() {
                   The only way to win is to beat yourself.
                 </h2>
                 <div className="mt-4 md:mt-0 font-mono text-sm text-right">
-                  DATA_POINTS: 1,002,491<br/>
-                  ACTIVE_CLONES: 4,200
+                  Data Points: 1,002,491<br/>
+                  Active Clones: 4,200
                 </div>
               </div>
 
