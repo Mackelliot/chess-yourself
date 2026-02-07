@@ -303,7 +303,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
     : isWhiteTurn ? 'bg-black' : 'bg-blue-600';
 
   return (
-    <div className="w-full flex flex-col items-center justify-start py-8 px-6 animate-in fade-in duration-500 min-h-[85vh]">
+    <div className="w-full flex flex-col items-center justify-start py-4 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
       <div className="flex justify-between w-full max-w-6xl mb-6 items-center border-b-4 border-black pb-4">
         <div>
            <h2 className="text-3xl font-black uppercase tracking-tighter">Simulation Active</h2>
@@ -336,8 +336,8 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
 
         {/* Board Column */}
         <div className="flex-1 flex flex-col items-center lg:items-end w-full gap-3">
-          <div className={`w-full max-w-[550px] border-4 bg-[#FDFBF7] transition-all duration-500 ${
-            gameState.isGameOver ? 'border-black' : isWhiteTurn ? 'border-black' : 'board-player-turn'
+          <div className={`w-full max-w-[100vw] md:max-w-[550px] border-0 md:border-4 bg-[#FDFBF7] transition-all duration-500 ${
+            gameState.isGameOver ? 'md:border-black' : isWhiteTurn ? 'md:border-black' : 'md:board-player-turn'
           }`}>
             <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} />
           </div>

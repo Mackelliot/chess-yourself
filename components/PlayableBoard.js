@@ -377,20 +377,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
     }
   }, [game]);
 
-  // External coordinate labels based on orientation
   const isBlack = playerColor === 'black';
-  const ranks = isBlack ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
-  const files = isBlack ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-
-  const coordStyle = {
-    fontFamily: 'monospace',
-    fontSize: '11px',
-    color: '#9ca3af',
-    userSelect: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
 
   const captured = getCapturedPieces(game);
   // Top of board = opponent side, bottom = player side
@@ -408,86 +395,60 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           to { opacity: 1; transform: translate(-50%, -140%); }
         }
       `}</style>
-      <div style={{ paddingLeft: 20, marginBottom: 4 }}>
+      <div style={{ marginBottom: 4 }}>
         <CapturedRow pieces={topCaptured} color={topColor} />
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '20px 1fr',
-          gridTemplateRows: '1fr 20px',
-        }}
-      >
-        {/* Rank labels (left column) */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {ranks.map((r) => (
-            <div key={r} style={{ ...coordStyle, flex: 1 }}>{r}</div>
-          ))}
-        </div>
-
-        {/* Board */}
-        <div style={{ position: 'relative' }}>
-          <Chessboard
-            position={game.fen()}
-            onPieceDrop={onDrop}
-            onSquareClick={onSquareClick}
-            boardOrientation={playerColor}
-            customPieces={customPieces}
-            customLightSquareStyle={{ backgroundColor: '#EBF0F7' }}
-            customDarkSquareStyle={{ backgroundColor: '#2563eb' }}
-            customDropSquareStyle={{ boxShadow: 'inset 0 0 0 4px #2563eb' }}
-            customSquareStyles={{
-              ...(selectedSquare ? { [selectedSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' } } : {}),
-              ...legalMoveSquares,
-            }}
-            isDraggablePiece={({ piece }) => piece.startsWith(playerColor === 'white' ? 'w' : 'b')}
-            animationDuration={200}
-            showBoardNotation={false}
-          />
-          {checkmateSquare && (() => {
-            const fileIdx = checkmateSquare.charCodeAt(0) - 97;
-            const rankIdx = parseInt(checkmateSquare[1]) - 1;
-            const col = isBlack ? 7 - fileIdx : fileIdx;
-            const row = isBlack ? rankIdx : 7 - rankIdx;
-            const topPct = row * 12.5 + 6.25;
-            const leftPct = col * 12.5 + 6.25;
-            return (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: `${topPct}%`,
-                  left: `${leftPct}%`,
-                  transform: 'translate(-50%, -140%)',
-                  background: '#000',
-                  color: '#fff',
-                  fontFamily: 'monospace',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.05em',
-                  padding: '3px 8px',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
-                  zIndex: 10,
-                  animation: 'checkmate-fade-in 0.3s ease-out',
-                }}
-              >
-                CHECKMATE
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Spacer (bottom-left corner) */}
-        <div />
-
-        {/* File labels (bottom row) */}
-        <div style={{ display: 'flex' }}>
-          {files.map((f) => (
-            <div key={f} style={{ ...coordStyle, flex: 1 }}>{f}</div>
-          ))}
-        </div>
+      <div style={{ position: 'relative' }}>
+        <Chessboard
+          position={game.fen()}
+          onPieceDrop={onDrop}
+          onSquareClick={onSquareClick}
+          boardOrientation={playerColor}
+          customPieces={customPieces}
+          customLightSquareStyle={{ backgroundColor: '#EBF0F7' }}
+          customDarkSquareStyle={{ backgroundColor: '#2563eb' }}
+          customDropSquareStyle={{ boxShadow: 'inset 0 0 0 4px #2563eb' }}
+          customSquareStyles={{
+            ...(selectedSquare ? { [selectedSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' } } : {}),
+            ...legalMoveSquares,
+          }}
+          isDraggablePiece={({ piece }) => piece.startsWith(playerColor === 'white' ? 'w' : 'b')}
+          animationDuration={200}
+          showBoardNotation={true}
+        />
+        {checkmateSquare && (() => {
+          const fileIdx = checkmateSquare.charCodeAt(0) - 97;
+          const rankIdx = parseInt(checkmateSquare[1]) - 1;
+          const col = isBlack ? 7 - fileIdx : fileIdx;
+          const row = isBlack ? rankIdx : 7 - rankIdx;
+          const topPct = row * 12.5 + 6.25;
+          const leftPct = col * 12.5 + 6.25;
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                top: `${topPct}%`,
+                left: `${leftPct}%`,
+                transform: 'translate(-50%, -140%)',
+                background: '#000',
+                color: '#fff',
+                fontFamily: 'monospace',
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                padding: '3px 8px',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                zIndex: 10,
+                animation: 'checkmate-fade-in 0.3s ease-out',
+              }}
+            >
+              CHECKMATE
+            </div>
+          );
+        })()}
       </div>
-      <div style={{ paddingLeft: 20, marginTop: 4 }}>
+      <div style={{ marginTop: 4 }}>
         <CapturedRow pieces={bottomCaptured} color={bottomColor} />
       </div>
     </div>
