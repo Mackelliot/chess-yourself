@@ -1,11 +1,13 @@
 import requests
 
-def validate_user(username: str) -> bool:
+def validate_user(username: str) -> dict:
     try:
         response = requests.get(f"https://lichess.org/api/user/{username}")
-        return response.status_code == 200
+        if response.status_code == 200:
+            return {"found": True, "avatar_url": None}
+        return {"found": False, "avatar_url": None}
     except requests.RequestException:
-        return False
+        return {"found": False, "avatar_url": None}
 
 def get_games_by_color(username: str, color: str) -> list[str]:
     headers = {

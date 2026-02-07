@@ -1,8 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Cpu, User, Zap, Grid3X3, Crown, X, Upload, Play, AlertCircle, Check, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Cpu, User, Zap, Grid3X3, Crown, X, Upload, Play, AlertCircle, Check, Volume2, VolumeX, MessageSquare, MoreVertical, Flag, RotateCcw, LogOut, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Chess } from 'chess.js';
 import PlayableBoard from '../components/PlayableBoard';
+import {
+  generateIntroMessage,
+  generateFirstMoveMessage,
+  generateGhostMoveMessage,
+  generateStockfishMessage,
+  generatePlayerMoveReaction,
+  generateGameOverMessage,
+  generateResignMessage,
+} from '../lib/commentary';
 
 /**
  * UTILS & HOOKS
@@ -323,20 +333,212 @@ const MoveList = ({ moves }) => {
   );
 };
 
-const ChessGameInterface = ({ username, ghostBook, onExit }) => {
+const AICloneChat = ({ messages, avatarUrl, username }) => {
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  return (
+    <div className="border-4 border-black bg-white flex flex-col h-full">
+      <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b-2 border-black/10 flex justify-between items-center shrink-0">
+        <span>AI CLONE</span>
+        <MessageSquare size={14} />
+      </div>
+
+      {/* Avatar Section */}
+      <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
+        <div className="relative w-10 h-10 shrink-0 crt-container rounded overflow-hidden crt-glitch">
+          {avatarUrl ? (
+            <>
+              <img
+                src={avatarUrl}
+                alt={username}
+                className="w-full h-full object-cover crt-avatar"
+              />
+              <div className="absolute inset-0 bg-blue-600/30 mix-blend-multiply" />
+              <div className="crt-scanlines" />
+            </>
+          ) : (
+            <div className="w-full h-full bg-blue-600 flex items-center justify-center">
+              <Cpu size={20} className="text-white" />
+            </div>
+          )}
+        </div>
+        <div>
+          <p className="font-mono text-xs font-bold truncate max-w-[140px]">{username}</p>
+          <p className="font-mono text-[10px] text-blue-600">CLONE ACTIVE</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={listRef} className="overflow-y-auto flex-1 font-mono text-xs p-3 space-y-2">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`py-1.5 px-2 rounded leading-relaxed ${
+              msg.type === 'system'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : msg.type === 'reaction'
+                ? 'text-gray-500 italic'
+                : 'text-gray-800'
+            }`}
+          >
+            {msg.type === 'taunt' && <span className="text-blue-600 mr-1">&gt;</span>}
+            {msg.text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const GameMenu = ({ soundEnabled, setSoundEnabled, onResign, onRematch, onExit, isGameOver }) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="p-2 hover:bg-black/5 rounded transition-colors"
+        title="Game Menu"
+      >
+        <MoreVertical size={20} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-48 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+          <button
+            onClick={() => { onRematch(); setOpen(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
+          >
+            <RotateCcw size={16} /> New Game
+          </button>
+          {!isGameOver && (
+            <button
+              onClick={() => { onResign(); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-red-50 text-red-600 transition-colors text-left"
+            >
+              <Flag size={16} /> Resign
+            </button>
+          )}
+          <button
+            onClick={() => setSoundEnabled(s => !s)}
+            className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
+          >
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            {soundEnabled ? 'Sound On' : 'Sound Off'}
+          </button>
+          <button
+            onClick={() => { onExit(); setOpen(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left border-t border-black/10"
+          >
+            <LogOut size={16} /> Back to Menu
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }) => {
   const [gameState, setGameState] = useState({ turn: 'w', moves: [], isGameOver: false, result: null });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [boardKey, setBoardKey] = useState(0);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [viewIndex, setViewIndex] = useState(null);
   const prevMoveCountRef = useRef(0);
+  const gameOverCommentedRef = useRef(false);
+
+  // Send intro message on mount
+  useEffect(() => {
+    setChatMessages([{ type: 'system', text: generateIntroMessage() }]);
+  }, []);
+
+  const addChatMessage = (msg) => {
+    if (msg) setChatMessages(prev => [...prev, msg]);
+  };
+
+  const handleAIMove = React.useCallback((data) => {
+    if (data.moveNumber === 1) {
+      addChatMessage({ type: 'taunt', text: generateFirstMoveMessage(data.move, ghostBook) });
+    } else if (data.source === 'ghost') {
+      addChatMessage({ type: 'taunt', text: generateGhostMoveMessage(data.move, data.ghostData) });
+    } else {
+      addChatMessage({ type: 'taunt', text: generateStockfishMessage(data.move) });
+    }
+  }, [ghostBook]);
+
+  const handlePlayerMove = React.useCallback((data) => {
+    const reaction = generatePlayerMoveReaction(data);
+    if (reaction) addChatMessage({ type: 'reaction', text: reaction });
+  }, []);
 
   const handleRematch = () => {
     prevMoveCountRef.current = 0;
+    prevMoveLenRef.current = 0;
+    gameOverCommentedRef.current = false;
+    setViewIndex(null);
+    setChatMessages([{ type: 'system', text: generateIntroMessage() }]);
     setBoardKey(k => k + 1);
+  };
+
+  const handleResign = () => {
+    if (gameState.isGameOver) return;
+    gameOverCommentedRef.current = true;
+    addChatMessage({ type: 'system', text: generateResignMessage() });
+    setGameState(prev => ({ ...prev, isGameOver: true, result: 'resignation', turn: 'b' }));
   };
 
   const handleGameUpdate = React.useCallback((state) => {
     setGameState(state);
   }, []);
+
+  // Auto-return to live when a new move arrives while reviewing
+  const prevMoveLenRef = useRef(0);
+  useEffect(() => {
+    if (gameState.moves.length !== prevMoveLenRef.current) {
+      prevMoveLenRef.current = gameState.moves.length;
+      if (viewIndex !== null) setViewIndex(null);
+    }
+  }, [gameState.moves.length, viewIndex]);
+
+  // Reconstruct FEN at viewIndex by replaying moves
+  const displayPosition = React.useMemo(() => {
+    if (viewIndex === null) return null;
+    const g = new Chess();
+    const moves = gameState.moves;
+    for (let i = 0; i < Math.min(viewIndex, moves.length); i++) {
+      g.move(moves[i]);
+    }
+    return g.fen();
+  }, [viewIndex, gameState.moves]);
+
+  // Navigation handlers
+  const totalMoves = gameState.moves.length;
+  const goToStart = () => { if (totalMoves > 0) setViewIndex(0); };
+  const goBack = () => {
+    if (viewIndex === null) setViewIndex(Math.max(0, totalMoves - 1));
+    else if (viewIndex > 0) setViewIndex(viewIndex - 1);
+  };
+  const goForward = () => {
+    if (viewIndex === null) return;
+    if (viewIndex >= totalMoves - 1) setViewIndex(null);
+    else setViewIndex(viewIndex + 1);
+  };
+  const goToEnd = () => { setViewIndex(null); };
 
   useEffect(() => {
     const unlockAudio = () => {
@@ -367,7 +569,12 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
       }
     }
     prevMoveCountRef.current = moveCount;
-  }, [gameState.moves, soundEnabled, gameState.turn]);
+
+    if (gameState.isGameOver && !gameOverCommentedRef.current) {
+      gameOverCommentedRef.current = true;
+      addChatMessage({ type: 'system', text: generateGameOverMessage(gameState.result, gameState.turn) });
+    }
+  }, [gameState.moves, soundEnabled, gameState.turn, gameState.isGameOver, gameState.result]);
 
   const isWhiteTurn = gameState.turn === 'w';
   const turnLabel = gameState.isGameOver
@@ -379,7 +586,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
 
   return (
     <div className="w-full flex flex-col items-center justify-start py-4 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
-      <div className="flex justify-between w-full max-w-6xl mb-6 items-center border-b-4 border-black pb-4">
+      <div className="flex justify-between w-full max-w-[1200px] mb-6 items-center border-b-4 border-black pb-4">
         <div>
            <h2 className="text-3xl font-black uppercase tracking-tighter">Simulation Active</h2>
            <p className="font-mono text-sm text-gray-600">
@@ -387,34 +594,34 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
            </p>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 hover:bg-black/5 rounded-full transition-colors"
-            title={soundEnabled ? "Mute Sounds" : "Enable Sounds"}
-          >
-            {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-          </button>
           <div className={`${turnColor} text-white px-4 py-2 font-mono text-sm font-bold uppercase tracking-wider transition-colors`}>
             {turnLabel}
           </div>
-          <button
-            onClick={onExit}
-            className="text-xs font-mono underline hover:text-red-500"
-          >
-            ABORT
-          </button>
+          <GameMenu
+            soundEnabled={soundEnabled}
+            setSoundEnabled={setSoundEnabled}
+            onResign={handleResign}
+            onRematch={handleRematch}
+            onExit={onExit}
+            isGameOver={gameState.isGameOver}
+          />
         </div>
       </div>
 
-      {/* Main Game Layout */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start justify-center w-full max-w-6xl flex-grow">
+      {/* Main Game Layout — 3 columns: Notation | Board | AI Chat */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start justify-center w-full max-w-[1200px] flex-grow">
 
-        {/* Board Column */}
-        <div className="flex-1 flex flex-col items-center lg:items-end w-full gap-3">
+        {/* Move Notation — left on desktop, below board on mobile */}
+        <div className="w-full lg:w-56 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)] order-2 lg:order-1">
+          <MoveList moves={gameState.moves} />
+        </div>
+
+        {/* Board Column — center */}
+        <div className="flex-1 flex flex-col items-center w-full gap-3 order-1 lg:order-2">
           <div className={`w-full max-w-[100vw] md:max-w-[550px] border-0 md:border-4 bg-[#FDFBF7] transition-all duration-500 ${
             gameState.isGameOver ? 'md:border-black' : isWhiteTurn ? 'md:border-black' : 'md:board-player-turn'
           }`}>
-            <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} />
+            <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} onAIMove={handleAIMove} onPlayerMove={handlePlayerMove} displayPosition={displayPosition} />
           </div>
           {isWhiteTurn && !gameState.isGameOver && (
             <div className="flex items-center gap-2 font-mono text-xs text-blue-600 font-bold uppercase tracking-wider">
@@ -422,11 +629,51 @@ const ChessGameInterface = ({ username, ghostBook, onExit }) => {
               AI COMPUTING...
             </div>
           )}
+          {/* Move navigation bar */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToStart}
+              disabled={totalMoves === 0 || viewIndex === 0}
+              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              title="Go to start"
+            >
+              <ChevronsLeft size={16} />
+            </button>
+            <button
+              onClick={goBack}
+              disabled={totalMoves === 0 || viewIndex === 0}
+              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              title="Previous move"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {viewIndex !== null && (
+              <span className="font-mono text-xs text-gray-500 px-2">
+                MOVE {viewIndex} / {totalMoves}
+              </span>
+            )}
+            <button
+              onClick={goForward}
+              disabled={viewIndex === null}
+              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              title="Next move"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={goToEnd}
+              disabled={viewIndex === null}
+              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              title="Go to latest"
+            >
+              <ChevronsRight size={16} />
+            </button>
+          </div>
         </div>
 
-        {/* Move Notation Sidebar */}
-        <div className="w-full lg:w-72 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)]">
-          <MoveList moves={gameState.moves} />
+        {/* AI Clone Chat — right on desktop, below notation on mobile */}
+        <div className="w-full lg:w-64 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)] order-3">
+          <AICloneChat messages={chatMessages} avatarUrl={avatarUrl} username={username} />
         </div>
       </div>
 
@@ -453,13 +700,17 @@ const GameOverModal = ({ gameState, onRematch, onExit }) => {
 
   // Player is always black. turn() returns who is checkmated / stalemated.
   const playerWins = gameState.result === 'checkmate' && gameState.turn === 'w';
-  const playerLoses = gameState.result === 'checkmate' && gameState.turn === 'b';
+  const playerLoses = (gameState.result === 'checkmate' && gameState.turn === 'b') || gameState.result === 'resignation';
 
   let title, message, accent;
   if (playerWins) {
     title = 'YOU WIN';
     message = 'You defeated your own clone. Time to raise the bar.';
     accent = 'border-green-500';
+  } else if (gameState.result === 'resignation') {
+    title = 'YOU RESIGNED';
+    message = 'You conceded the game.';
+    accent = 'border-red-500';
   } else if (playerLoses) {
     title = 'YOU LOSE';
     message = 'Your clone got the better of you this time.';
@@ -555,6 +806,7 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
           setIsLoading(false);
           return;
         }
+        const valData = await valRes.json();
         setValidated(true);
 
         const ghostRes = await fetch(
@@ -562,7 +814,7 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
         );
         const ghostBook = ghostRes.ok ? await ghostRes.json() : null;
         setIsLoading(false);
-        onStart({ mode: 'online', username: inputValue, ghostBook, platform });
+        onStart({ mode: 'online', username: inputValue, ghostBook, platform, avatarUrl: valData.avatar_url });
       } catch (err) {
         setError('Could not connect to server.');
         setIsLoading(false);
@@ -791,16 +1043,20 @@ export default function Home() {
   const [gameActive, setGameActive] = useState(false);
   const [activeUsername, setActiveUsername] = useState('');
   const [ghostBook, setGhostBook] = useState(null);
-  
+  const [activePlatform, setActivePlatform] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+
   // Inline form state
   const [platform, setPlatform] = useState('chesscom');
   const [usernameInput, setUsernameInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleGameStart = ({ username, ghostBook: gb }) => {
+  const handleGameStart = ({ username, ghostBook: gb, platform: plat, avatarUrl: avatar }) => {
     setActiveUsername(username);
     setGhostBook(gb || null);
+    setActivePlatform(plat || null);
+    setAvatarUrl(avatar || null);
     setGameActive(true);
     setShowModal(false);
   };
@@ -831,13 +1087,14 @@ export default function Home() {
         setIsLoading(false);
         return;
       }
+      const valData = await valRes.json();
 
       const ghostRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ghost?username=${encodeURIComponent(usernameInput)}&color=white&platform=${platform}`
       );
       const ghostBook = ghostRes.ok ? await ghostRes.json() : null;
       setIsLoading(false);
-      handleGameStart({ mode: 'online', username: usernameInput, ghostBook, platform });
+      handleGameStart({ mode: 'online', username: usernameInput, ghostBook, platform, avatarUrl: valData.avatar_url });
     } catch (err) {
       setError('Could not connect to server.');
       setIsLoading(false);
@@ -848,6 +1105,8 @@ export default function Home() {
     setGameActive(false);
     setActiveUsername('');
     setGhostBook(null);
+    setActivePlatform(null);
+    setAvatarUrl(null);
     setIsLoading(false);
   };
 
@@ -1000,7 +1259,7 @@ export default function Home() {
           </div>
         ) : (
           /* ACTIVE GAME VIEW */
-          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} />
+          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} />
         )}
 
         {/* Dynamic Grid Visual (Always show at bottom of hero unless game is covering) */}

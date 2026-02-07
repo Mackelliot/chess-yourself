@@ -28,14 +28,14 @@ def validate_user(username: str, platform: str):
         raise HTTPException(status_code=400, detail="Platform must be 'chesscom' or 'lichess'")
 
     if platform == "chesscom":
-        found = chesscom_validate(username)
+        result = chesscom_validate(username)
     else:
-        found = lichess_validate(username)
+        result = lichess_validate(username)
 
-    if not found:
+    if not result.get("found"):
         raise HTTPException(status_code=404, detail=f"Username not found on {platform}")
 
-    return {"status": "ok", "username": username, "platform": platform}
+    return {"status": "ok", "username": username, "platform": platform, "avatar_url": result.get("avatar_url")}
 
 @app.get("/ghost")
 def get_ghost_moves(username: str, color: str, platform: str = "chesscom"):

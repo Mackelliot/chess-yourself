@@ -1,14 +1,17 @@
 import requests
 
-def validate_user(username: str) -> bool:
+def validate_user(username: str) -> dict:
     headers = {
         'User-Agent': 'ChessYourself/1.0'
     }
     try:
         response = requests.get(f"https://api.chess.com/pub/player/{username}", headers=headers)
-        return response.status_code == 200
+        if response.status_code == 200:
+            data = response.json()
+            return {"found": True, "avatar_url": data.get("avatar")}
+        return {"found": False, "avatar_url": None}
     except requests.RequestException:
-        return False
+        return {"found": False, "avatar_url": None}
 
 def get_games_by_color(username: str, color: str) -> list[str]:
     """

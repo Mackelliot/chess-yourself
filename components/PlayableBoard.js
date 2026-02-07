@@ -25,6 +25,20 @@ export function makeGhostMove(fen, ghostBook) {
   return null;
 }
 
+export function getGhostStats(fen, ghostBook) {
+  if (!ghostBook) return null;
+  const normalizedFen = normalizeFen(fen);
+  const moves = ghostBook[normalizedFen];
+  if (!moves) return null;
+
+  const total = Object.values(moves).reduce((sum, count) => sum + count, 0);
+  const entries = Object.entries(moves)
+    .map(([move, count]) => ({ move, count, percentage: Math.round((count / total) * 100) }))
+    .sort((a, b) => b.count - a.count);
+
+  return { total, entries };
+}
+
 // --- Illegal Move Sound ---
 
 let _audioCtx = null;
@@ -110,7 +124,7 @@ function CapturedRow({ pieces, color }) {
 
 // --- End Pieces ---
 
-export default function PlayableBoard({ ghostBook = null, playerColor = 'black', onGameUpdate = null }) {
+export default function PlayableBoard({ ghostBook = null, playerColor = 'black', onGameUpdate = null, onAIMove = null, onPlayerMove = null, displayPosition = null }) {
   const [game, setGame] = useState(new Chess());
   const [stockfish, setStockfish] = useState(null);
   const [engineReady, setEngineReady] = useState(false);
@@ -121,10 +135,14 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
   // Track full move history separately — new Chess(fen) loses history,
   // so game.history() only ever returns the last move
   const moveHistoryRef = useRef([]);
+  const onAIMoveRef = useRef(onAIMove);
+  const onPlayerMoveRef = useRef(onPlayerMove);
 
   // Keep refs in sync so async callbacks always see latest state
   useEffect(() => { gameRef.current = game; }, [game]);
   useEffect(() => { playerColorRef.current = playerColor; }, [playerColor]);
+  useEffect(() => { onAIMoveRef.current = onAIMove; }, [onAIMove]);
+  useEffect(() => { onPlayerMoveRef.current = onPlayerMove; }, [onPlayerMove]);
 
   // Helper: record a move in our history and update game state
   function commitMove(gameCopy, moveSan) {
@@ -198,6 +216,9 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
         });
         moveHistoryRef.current = [...moveHistoryRef.current, result.san];
         setGame(gameCopy);
+        if (onAIMoveRef.current) {
+          onAIMoveRef.current({ move: result.san, source: 'stockfish', ghostData: null, moveNumber: moveHistoryRef.current.length });
+        }
       } catch (error) {
         console.error('Stockfish move failed:', bestMove, error);
         // Fallback: make a random legal move so the game never freezes
@@ -209,6 +230,9 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           gameCopy.move(randomSan);
           moveHistoryRef.current = [...moveHistoryRef.current, randomSan];
           setGame(gameCopy);
+          if (onAIMoveRef.current) {
+            onAIMoveRef.current({ move: randomSan, source: 'stockfish', ghostData: null, moveNumber: moveHistoryRef.current.length });
+          }
         }
       }
     };
@@ -239,9 +263,13 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
 
       if (ghostMove) {
         try {
+          const ghostData = getGhostStats(game.fen(), ghostBook);
           const gameCopy = new Chess(game.fen());
           const result = gameCopy.move(ghostMove);
           commitMove(gameCopy, result.san);
+          if (onAIMoveRef.current) {
+            onAIMoveRef.current({ move: result.san, source: 'ghost', ghostData, moveNumber: moveHistoryRef.current.length });
+          }
           return;
         } catch (error) {
           console.error('Ghost move failed, falling back to Stockfish:', ghostMove, error);
@@ -301,6 +329,14 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       commitMove(gameCopy, move.san);
       setSelectedSquare(null);
       setLegalMoveSquares({});
+      if (onPlayerMoveRef.current) {
+        onPlayerMoveRef.current({
+          move: move.san,
+          isCapture: move.san.includes('x'),
+          isCheck: move.san.includes('+') || move.san.includes('#'),
+          moveNumber: moveHistoryRef.current.length,
+        });
+      }
       return true;
     } catch (error) {
       return false;
@@ -377,6 +413,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
     }
   }, [game]);
 
+  const isReviewing = displayPosition !== null;
   const isBlack = playerColor === 'black';
 
   const captured = getCapturedPieces(game);
@@ -400,19 +437,19 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       </div>
       <div style={{ position: 'relative' }}>
         <Chessboard
-          position={game.fen()}
-          onPieceDrop={onDrop}
-          onSquareClick={onSquareClick}
+          position={isReviewing ? displayPosition : game.fen()}
+          onPieceDrop={isReviewing ? () => false : onDrop}
+          onSquareClick={isReviewing ? () => {} : onSquareClick}
           boardOrientation={playerColor}
           customPieces={customPieces}
           customLightSquareStyle={{ backgroundColor: '#EBF0F7' }}
           customDarkSquareStyle={{ backgroundColor: '#2563eb' }}
           customDropSquareStyle={{ boxShadow: 'inset 0 0 0 4px #2563eb' }}
-          customSquareStyles={{
+          customSquareStyles={isReviewing ? {} : {
             ...(selectedSquare ? { [selectedSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' } } : {}),
             ...legalMoveSquares,
           }}
-          isDraggablePiece={({ piece }) => piece.startsWith(playerColor === 'white' ? 'w' : 'b')}
+          isDraggablePiece={isReviewing ? () => false : ({ piece }) => piece.startsWith(playerColor === 'white' ? 'w' : 'b')}
           animationDuration={200}
           showBoardNotation={true}
         />
