@@ -9,7 +9,10 @@ app = FastAPI()
 
 import os
 
-allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+allowed_origins = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,https://chess-yourself.vercel.app"
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
