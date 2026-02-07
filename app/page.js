@@ -333,50 +333,71 @@ const MoveList = ({ moves }) => {
   );
 };
 
+const AvatarImage = ({ avatarUrl, username, size = 16 }) => (
+  <div className={`relative w-${size} h-${size} shrink-0 crt-container rounded overflow-hidden`}
+    style={{ width: size * 4, height: size * 4 }}
+  >
+    {avatarUrl ? (
+      <>
+        <img src={avatarUrl} alt={username} className="w-full h-full object-cover crt-avatar" />
+        <div className="absolute inset-0 bg-blue-600/50 mix-blend-color" />
+        <div className="crt-scanlines" />
+      </>
+    ) : (
+      <div className="w-full h-full bg-blue-600 flex items-center justify-center">
+        <Cpu size={size > 10 ? 20 : 16} className="text-white" />
+      </div>
+    )}
+  </div>
+);
+
 const AICloneChat = ({ message, avatarUrl, username }) => {
   return (
-    <div className="border-4 border-black bg-white flex flex-col h-full">
-      <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b-2 border-black/10 flex justify-between items-center shrink-0">
-        <span>AI CLONE</span>
-        <MessageSquare size={14} />
-      </div>
-
-      {/* Avatar Section */}
-      <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
-        <div className="relative w-16 h-16 shrink-0 crt-container rounded overflow-hidden">
-          {avatarUrl ? (
-            <>
-              <img
-                src={avatarUrl}
-                alt={username}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-blue-600/30 mix-blend-multiply" />
-              <div className="crt-scanlines" />
-            </>
-          ) : (
-            <div className="w-full h-full bg-blue-600 flex items-center justify-center">
-              <Cpu size={20} className="text-white" />
+    <>
+      {/* Mobile: compact inline bar */}
+      <div className="lg:hidden border-4 border-black bg-white flex items-center gap-3 px-3 py-3">
+        <AvatarImage avatarUrl={avatarUrl} username={username} size={10} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-mono text-xs font-bold truncate">{username}</p>
+            <span className="font-mono text-[9px] text-blue-600 shrink-0">CLONE</span>
+          </div>
+          {message && (
+            <div className="bg-gray-100 rounded-xl rounded-tl-sm px-3 py-2">
+              <p className="font-mono text-xs leading-relaxed text-gray-900">
+                {message.text}
+              </p>
             </div>
           )}
         </div>
-        <div>
-          <p className="font-mono text-xs font-bold truncate max-w-[140px]">{username}</p>
-          <p className="font-mono text-[10px] text-blue-600">CLONE ACTIVE</p>
-        </div>
       </div>
 
-      {/* Chat Bubble */}
-      <div className="flex-1 flex items-start p-4">
-        {message && (
-          <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[95%]">
-            <p className="font-mono text-sm leading-relaxed text-gray-900">
-              {message.text}
-            </p>
+      {/* Desktop: full card */}
+      <div className="hidden lg:flex border-4 border-black bg-white flex-col h-full">
+        <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b-2 border-black/10 flex justify-between items-center shrink-0">
+          <span>AI CLONE</span>
+          <MessageSquare size={14} />
+        </div>
+
+        <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
+          <AvatarImage avatarUrl={avatarUrl} username={username} size={16} />
+          <div>
+            <p className="font-mono text-xs font-bold truncate max-w-[140px]">{username}</p>
+            <p className="font-mono text-[10px] text-blue-600">CLONE ACTIVE</p>
           </div>
-        )}
+        </div>
+
+        <div className="flex-1 flex items-start p-4">
+          {message && (
+            <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[95%]">
+              <p className="font-mono text-sm leading-relaxed text-gray-900">
+                {message.text}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -567,16 +588,17 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
     : isWhiteTurn ? 'bg-black' : 'bg-blue-600';
 
   return (
-    <div className="w-full flex flex-col items-center justify-start py-4 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
-      <div className="flex justify-between w-full max-w-[1200px] mb-6 items-center border-b-4 border-black pb-4">
+    <div className="w-full flex flex-col items-center justify-start py-2 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
+      {/* Game header — compact on mobile */}
+      <div className="flex justify-between w-full max-w-[1200px] mb-2 md:mb-6 items-center border-b-4 border-black pb-2 md:pb-4">
         <div>
-           <h2 className="text-3xl font-black uppercase tracking-tighter">Simulation Active</h2>
-           <p className="font-mono text-sm text-gray-600">
+           <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter">Simulation Active</h2>
+           <p className="font-mono text-[10px] md:text-sm text-gray-600 hidden md:block">
              OPPONENT: <span className="text-blue-600 font-bold">AI CLONE (WHITE)</span> vs <span className="text-black font-bold">{username} (BLACK)</span>
            </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className={`${turnColor} text-white px-4 py-2 font-mono text-sm font-bold uppercase tracking-wider transition-colors`}>
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className={`${turnColor} text-white px-2 md:px-4 py-1 md:py-2 font-mono text-[10px] md:text-sm font-bold uppercase tracking-wider transition-colors`}>
             {turnLabel}
           </div>
           <GameMenu
@@ -590,16 +612,16 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
         </div>
       </div>
 
-      {/* Main Game Layout — 3 columns: Notation | Board | AI Chat */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start justify-center w-full max-w-[1200px] flex-grow">
+      {/* Main Game Layout — 3 columns on desktop: Notation | Board | AI Chat */}
+      <div className="flex flex-col lg:flex-row gap-2 md:gap-4 items-start justify-center w-full max-w-[1200px] flex-grow">
 
-        {/* Move Notation — left on desktop, below board on mobile */}
-        <div className="w-full lg:w-56 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)] order-2 lg:order-1">
-          <MoveList moves={gameState.moves} />
+        {/* AI Clone Chat — above board on mobile, right column on desktop */}
+        <div className="w-full lg:w-64 shrink-0 lg:h-[calc(550px+6rem+6px)] order-1 lg:order-3">
+          <AICloneChat message={chatMessage} avatarUrl={avatarUrl} username={username} />
         </div>
 
         {/* Board Column — center */}
-        <div className="flex-1 flex flex-col items-center w-full gap-3 order-1 lg:order-2">
+        <div className="flex-1 flex flex-col items-center w-full gap-2 md:gap-3 order-2 lg:order-2">
           <div className={`w-full max-w-[100vw] md:max-w-[550px] border-0 md:border-4 bg-[#FDFBF7] transition-all duration-500 ${
             gameState.isGameOver ? 'md:border-black' : isWhiteTurn ? 'md:border-black' : 'md:board-player-turn'
           }`}>
@@ -653,9 +675,9 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
           </div>
         </div>
 
-        {/* AI Clone Chat — right on desktop, below notation on mobile */}
-        <div className="w-full lg:w-64 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)] order-3">
-          <AICloneChat message={chatMessage} avatarUrl={avatarUrl} username={username} />
+        {/* Move Notation — left on desktop, below board on mobile */}
+        <div className="w-full lg:w-56 shrink-0 h-[200px] lg:h-[calc(550px+6rem+6px)] order-3 lg:order-1">
+          <MoveList moves={gameState.moves} />
         </div>
       </div>
 

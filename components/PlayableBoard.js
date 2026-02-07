@@ -378,8 +378,9 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       const moves = game.moves({ square, verbose: true });
       const highlights = {};
       moves.forEach((m) => {
+        const isCapture = game.get(m.to) || m.flags.includes('e');
         highlights[m.to] = {
-          background: game.get(m.to)
+          background: isCapture
             ? 'radial-gradient(circle, rgba(0,0,0,0.3) 85%, transparent 85%)'
             : 'radial-gradient(circle, rgba(0,0,0,0.2) 25%, transparent 25%)',
           borderRadius: '50%',
