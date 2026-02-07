@@ -844,24 +844,6 @@ export default function Home() {
 
               {/* Right Column: Form & Badge */}
               <div className="w-full max-w-lg shrink-0 relative lg:mt-8">
-                {/* Decorative Circle Badge */}
-                <div className="hidden lg:block absolute -right-12 -top-24 z-0 pointer-events-none">
-                  <div className="w-48 h-48 rounded-full bg-[#E8C547] flex items-center justify-center animate-[spin_10s_linear_infinite] border-4 border-black pointer-events-auto hover:bg-[#F06595] transition-colors cursor-pointer">
-                    <svg viewBox="0 0 100 100" className="w-full h-full p-2">
-                      <path
-                        id="curve"
-                        d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
-                        fill="transparent"
-                      />
-                      <text className="text-[13px] font-bold uppercase font-mono tracking-widest">
-                        <textPath xlinkHref="#curve">
-                           • Train • Analyze • Improve • conquer •
-                        </textPath>
-                      </text>
-                    </svg>
-                    <div className="absolute font-black text-2xl">PLAY</div>
-                  </div>
-                </div>
 
                 {/* INLINE FORM CTA */}
                 <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative z-10">
