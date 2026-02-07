@@ -11,7 +11,7 @@ import os
 
 allowed_origins = os.environ.get(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,https://chess-yourself.vercel.app"
+    "http://localhost:3000,https://chess-yourself.vercel.app,https://www.chessyourself.com,https://chessyourself.com"
 ).split(",")
 
 app.add_middleware(
