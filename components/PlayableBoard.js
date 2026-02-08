@@ -124,7 +124,27 @@ function CapturedRow({ pieces, color }) {
 
 // --- End Pieces ---
 
-export default function PlayableBoard({ ghostBook = null, playerColor = 'black', onGameUpdate = null, onAIMove = null, onPlayerMove = null, displayPosition = null }) {
+// --- Napoleon: Remusat Opening Line (1804) ---
+// Each entry is the normalized FEN (white to move) and Napoleon's response.
+// Built from the Napoleon vs Madame de Remusat game.
+const REMUSAT_LINE = [
+  { fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -', move: 'Nc3' },
+  { fen: 'rnbqkbnr/pppp1ppp/8/4p3/8/2N5/PPPPPPPP/R1BQKBNR w KQkq -', move: 'Nf3' },
+  { fen: 'rnbqkbnr/ppp2ppp/3p4/4p3/8/2N2N2/PPPPPPPP/R1BQKB1R w KQkq -', move: 'e4' },
+  { fen: 'rnbqkbnr/ppp3pp/3p4/4pp2/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq -', move: 'h3' },
+  { fen: 'rnbqkbnr/ppp3pp/3p4/4p3/4p3/2N2N1P/PPPP1PP1/R1BQKB1R w KQkq -', move: 'Nxe4' },
+  { fen: 'r1bqkbnr/ppp3pp/2np4/4p3/4N3/5N1P/PPPP1PP1/R1BQKB1R w KQkq -', move: 'Nfg5' },
+  { fen: 'r1bqkbnr/ppp3pp/2n5/3pp1N1/4N3/7P/PPPP1PP1/R1BQKB1R w KQkq -', move: 'Qh5+' },
+  { fen: 'r1bqkbnr/ppp4p/2n3p1/3pp1NQ/4N3/7P/PPPP1PP1/R1B1KB1R w KQkq -', move: 'Qf3' },
+  { fen: 'r1bqkb1r/ppp4p/2n3pn/3pp1N1/4N3/5Q1P/PPPP1PP1/R1B1KB1R w KQkq -', move: 'Nf6+' },
+  { fen: 'r1bq1b1r/ppp1k2p/2n2Npn/3pp1N1/8/5Q1P/PPPP1PP1/R1B1KB1R w KQ -', move: 'Nxd5+' },
+  { fen: 'r1bq1b1r/ppp4p/2nk2pn/3Np1N1/8/5Q1P/PPPP1PP1/R1B1KB1R w KQ -', move: 'Ne4+' },
+  { fen: 'r1bq1b1r/ppp4p/2n3pn/3kp3/4N3/5Q1P/PPPP1PP1/R1B1KB1R w KQ -', move: 'Bc4+' },
+  { fen: 'r1bq1b1r/ppp4p/2n3pn/4p3/2k1N3/5Q1P/PPPP1PP1/R1B1K2R w KQ -', move: 'Qb3+' },
+  { fen: 'r1bq1b1r/ppp4p/2n3pn/4p3/3kN3/1Q5P/PPPP1PP1/R1B1K2R w KQ -', move: 'Qd3#' },
+];
+
+export default function PlayableBoard({ ghostBook = null, playerColor = 'black', onGameUpdate = null, onAIMove = null, onPlayerMove = null, displayPosition = null, napoleonMode = false }) {
   const [game, setGame] = useState(new Chess());
   const [stockfish, setStockfish] = useState(null);
   const [engineReady, setEngineReady] = useState(false);
@@ -137,6 +157,10 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
   const moveHistoryRef = useRef([]);
   const onAIMoveRef = useRef(onAIMove);
   const onPlayerMoveRef = useRef(onPlayerMove);
+
+  // Napoleon mode refs
+  const remusatActiveRef = useRef(false);
+  const candidatesRef = useRef([]);
 
   // Keep refs in sync so async callbacks always see latest state
   useEffect(() => { gameRef.current = game; }, [game]);
@@ -179,12 +203,35 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       const data = typeof event.data === 'string' ? event.data : String(event.data);
 
       if (data === 'uciok') {
+        if (napoleonMode) {
+          worker.postMessage('setoption name Contempt value 100');
+          worker.postMessage('setoption name MultiPV value 3');
+        }
         worker.postMessage('isready');
         return;
       }
 
       if (data === 'readyok') {
         setEngineReady(true);
+        return;
+      }
+
+      // Napoleon mode: collect MultiPV candidate info lines
+      if (napoleonMode && data.startsWith('info') && data.includes('multipv') && data.includes(' pv ')) {
+        const pvMatch = data.match(/multipv (\d+)/);
+        const scoreMatch = data.match(/score cp (-?\d+)/);
+        const pvMoves = data.match(/ pv (.+)/);
+        if (pvMatch && scoreMatch && pvMoves) {
+          const pvNum = parseInt(pvMatch[1]);
+          const score = parseInt(scoreMatch[1]);
+          const firstMove = pvMoves[1].split(' ')[0];
+          // Store/update candidate for this PV number
+          const existing = candidatesRef.current;
+          const idx = existing.findIndex(c => c.pv === pvNum);
+          const entry = { pv: pvNum, score, uci: firstMove };
+          if (idx >= 0) existing[idx] = entry;
+          else existing.push(entry);
+        }
         return;
       }
 
@@ -208,11 +255,45 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       }
 
       try {
+        let chosenUci = bestMove;
+
+        // Napoleon mode: pick the most aggressive candidate within 150cp of the best
+        if (napoleonMode && candidatesRef.current.length > 1) {
+          const candidates = [...candidatesRef.current].sort((a, b) => b.score - a.score);
+          const bestScore = candidates[0].score;
+          const viable = candidates.filter(c => bestScore - c.score <= 150);
+
+          if (viable.length > 1) {
+            // Score aggressiveness for each viable candidate
+            let bestAggression = -1;
+            let bestCandidate = viable[0];
+
+            for (const cand of viable) {
+              try {
+                const probe = new Chess(currentGame.fen());
+                const m = probe.move({ from: cand.uci.substring(0, 2), to: cand.uci.substring(2, 4), promotion: cand.uci.length > 4 ? cand.uci.substring(4, 5) : 'q' });
+                if (!m) continue;
+                let aggro = 0;
+                if (m.san.includes('+') || m.san.includes('#')) aggro += 5;
+                if (m.piece === 'q') aggro += 3;
+                if (m.captured) aggro += 2;
+                if (m.piece === 'p' && m.to[1] >= '5') aggro += 1;
+                if (aggro > bestAggression) {
+                  bestAggression = aggro;
+                  bestCandidate = cand;
+                }
+              } catch (_) {}
+            }
+            chosenUci = bestCandidate.uci;
+          }
+        }
+        candidatesRef.current = [];
+
         const gameCopy = new Chess(currentGame.fen());
         const result = gameCopy.move({
-          from: bestMove.substring(0, 2),
-          to: bestMove.substring(2, 4),
-          promotion: bestMove.length > 4 ? bestMove.substring(4, 5) : 'q',
+          from: chosenUci.substring(0, 2),
+          to: chosenUci.substring(2, 4),
+          promotion: chosenUci.length > 4 ? chosenUci.substring(4, 5) : 'q',
         });
         moveHistoryRef.current = [...moveHistoryRef.current, result.san];
         setGame(gameCopy);
@@ -259,6 +340,38 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
     if (!stockfish || !engineReady) return;
 
     const timeout = setTimeout(() => {
+      // Napoleon mode: try Remusat opening line first
+      if (napoleonMode) {
+        const currentFen = normalizeFen(game.fen());
+
+        // On first white move, roll 45/55 for Remusat vs ghost book
+        if (moveHistoryRef.current.length === 0) {
+          remusatActiveRef.current = Math.random() < 0.45;
+        }
+
+        // If Remusat is active, try to follow the line
+        if (remusatActiveRef.current) {
+          const lineEntry = REMUSAT_LINE.find(e => e.fen === currentFen);
+          if (lineEntry) {
+            try {
+              const gameCopy = new Chess(game.fen());
+              const result = gameCopy.move(lineEntry.move);
+              commitMove(gameCopy, result.san);
+              if (onAIMoveRef.current) {
+                onAIMoveRef.current({ move: result.san, source: 'remusat', ghostData: null, moveNumber: moveHistoryRef.current.length });
+              }
+              return;
+            } catch (error) {
+              console.error('Remusat move failed, falling through:', lineEntry.move, error);
+              remusatActiveRef.current = false;
+            }
+          } else {
+            // Position diverged from Remusat line
+            remusatActiveRef.current = false;
+          }
+        }
+      }
+
       const ghostMove = ghostBook ? makeGhostMove(game.fen(), ghostBook) : null;
 
       if (ghostMove) {
@@ -277,6 +390,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       }
 
       // Stockfish fallback
+      candidatesRef.current = [];
       if (searchActiveRef.current) {
         stockfish.postMessage('stop');
       }
@@ -310,7 +424,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
         moveTimeoutRef.current = null;
       }
     };
-  }, [game, ghostBook, stockfish, playerColor, engineReady]);
+  }, [game, ghostBook, stockfish, playerColor, engineReady, napoleonMode]);
 
   function tryMove(sourceSquare, targetSquare) {
     const playerTurn = playerColor === 'white' ? 'w' : 'b';

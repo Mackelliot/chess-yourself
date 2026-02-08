@@ -524,7 +524,7 @@ const GameMenu = ({ soundEnabled, setSoundEnabled, onResign, onRematch, onExit, 
   );
 };
 
-const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }) => {
+const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, napoleonMode = false }) => {
   const [gameState, setGameState] = useState({ turn: 'w', moves: [], isGameOver: false, result: null });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [boardKey, setBoardKey] = useState(0);
@@ -535,20 +535,20 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
 
   // Send intro message on mount
   useEffect(() => {
-    setChatMessage({ type: 'system', text: generateIntroMessage() });
-  }, []);
+    setChatMessage({ type: 'system', text: generateIntroMessage(napoleonMode) });
+  }, [napoleonMode]);
 
   const handleAIMove = React.useCallback((data) => {
     let text;
     if (data.moveNumber === 1) {
-      text = generateFirstMoveMessage(data.move, ghostBook);
+      text = generateFirstMoveMessage(data.move, ghostBook, napoleonMode, data.source);
     } else if (data.source === 'ghost') {
       text = generateGhostMoveMessage(data.move, data.ghostData);
     } else {
-      text = generateStockfishMessage(data.move);
+      text = generateStockfishMessage(data.move, napoleonMode);
     }
     setChatMessage(text ? { type: 'taunt', text } : null);
-  }, [ghostBook]);
+  }, [ghostBook, napoleonMode]);
 
   const handlePlayerMove = React.useCallback((data) => {
     const text = generatePlayerMoveReaction(data);
@@ -560,7 +560,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
     prevMoveLenRef.current = 0;
     gameOverCommentedRef.current = false;
     setViewIndex(null);
-    setChatMessage({ type: 'system', text: generateIntroMessage() });
+    setChatMessage({ type: 'system', text: generateIntroMessage(napoleonMode) });
     setBoardKey(k => k + 1);
   };
 
@@ -641,7 +641,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
 
     if (gameState.isGameOver && !gameOverCommentedRef.current) {
       gameOverCommentedRef.current = true;
-      setChatMessage({ type: 'system', text: generateGameOverMessage(gameState.result, gameState.turn) });
+      setChatMessage({ type: 'system', text: generateGameOverMessage(gameState.result, gameState.turn, napoleonMode) });
     }
   }, [gameState.moves, soundEnabled, gameState.turn, gameState.isGameOver, gameState.result]);
 
@@ -691,7 +691,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl }
           <div className={`w-full max-w-[100vw] md:max-w-[550px] border-0 md:border-4 bg-[#FDFBF7] transition-all duration-500 ${
             gameState.isGameOver ? 'md:border-black' : isWhiteTurn ? 'md:border-black' : 'md:board-player-turn'
           }`}>
-            <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} onAIMove={handleAIMove} onPlayerMove={handlePlayerMove} displayPosition={displayPosition} />
+            <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} onAIMove={handleAIMove} onPlayerMove={handlePlayerMove} displayPosition={displayPosition} napoleonMode={napoleonMode} />
           </div>
           {isWhiteTurn && !gameState.isGameOver && (
             <div className="flex items-center gap-2 font-mono text-xs text-blue-600 font-bold uppercase tracking-wider">
@@ -855,8 +855,14 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
     setError('');
 
     if (activeTab === 'username') {
-      if (platform === 'default') {
-        onStart({ mode: 'default', username: 'Default Clone', ghostBook: null });
+      if (platform === 'napoleon') {
+        try {
+          const res = await fetch('/napoleon_ghost_book.json');
+          const data = res.ok ? await res.json() : null;
+          onStart({ mode: 'napoleon', username: 'Napoleon Bonaparte', ghostBook: data });
+        } catch (_) {
+          onStart({ mode: 'napoleon', username: 'Napoleon Bonaparte', ghostBook: null });
+        }
         return;
       }
 
@@ -953,18 +959,18 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
                   >
                     <option value="chesscom">Chess.com</option>
                     <option value="lichess">Lichess</option>
-                    <option value="default">Default Clone</option>
+                    <option value="napoleon">Napoleon Clone</option>
                   </select>
                 </div>
 
-                {platform === 'default' ? (
+                {platform === 'napoleon' ? (
                   <div className="border-2 border-dashed border-black p-6 bg-white">
                     <div className="flex items-center gap-2 mb-2">
-                      <Cpu size={18} className="text-blue-600" />
-                      <p className="font-mono text-sm font-bold">Stockfish Engine</p>
+                      <Crown size={18} className="text-blue-600" />
+                      <p className="font-mono text-sm font-bold">Napoleon Bonaparte</p>
                     </div>
                     <p className="font-mono text-xs text-gray-500 leading-relaxed">
-                      Play against Stockfish at moderate depth. No game history needed — pure engine opponent.
+                      Play against Napoleon Bonaparte's AI clone. Aggressive, tactical, and relentless.
                     </p>
                   </div>
                 ) : (
@@ -1115,6 +1121,7 @@ export default function Home() {
   const [ghostBook, setGhostBook] = useState(null);
   const [activePlatform, setActivePlatform] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [activeMode, setActiveMode] = useState(null);
 
   // Inline form state
   const [platform, setPlatform] = useState('chesscom');
@@ -1122,11 +1129,12 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleGameStart = ({ username, ghostBook: gb, platform: plat, avatarUrl: avatar }) => {
+  const handleGameStart = ({ mode, username, ghostBook: gb, platform: plat, avatarUrl: avatar }) => {
     setActiveUsername(username);
     setGhostBook(gb || null);
     setActivePlatform(plat || null);
     setAvatarUrl(avatar || null);
+    setActiveMode(mode || null);
     setGameActive(true);
     setShowModal(false);
   };
@@ -1136,8 +1144,17 @@ export default function Home() {
     initAudio();
     setError('');
 
-    if (platform === 'default') {
-      handleGameStart({ mode: 'default', username: 'Default Clone', ghostBook: null, platform });
+    if (platform === 'napoleon') {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/napoleon_ghost_book.json');
+        const data = res.ok ? await res.json() : null;
+        setIsLoading(false);
+        handleGameStart({ mode: 'napoleon', username: 'Napoleon Bonaparte', ghostBook: data, platform });
+      } catch (_) {
+        setIsLoading(false);
+        handleGameStart({ mode: 'napoleon', username: 'Napoleon Bonaparte', ghostBook: null, platform });
+      }
       return;
     }
 
@@ -1177,6 +1194,7 @@ export default function Home() {
     setGhostBook(null);
     setActivePlatform(null);
     setAvatarUrl(null);
+    setActiveMode(null);
     setIsLoading(false);
   };
 
@@ -1259,22 +1277,22 @@ export default function Home() {
                         <span className={`font-mono text-sm font-bold ${platform === 'lichess' ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>Lichess</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-4 h-4 border-2 border-black rounded-full flex items-center justify-center ${platform === 'default' ? 'bg-blue-600' : 'bg-white'}`}>
-                          {platform === 'default' && <div className="w-2 h-2 bg-white rounded-full" />}
+                        <div className={`w-4 h-4 border-2 border-black rounded-full flex items-center justify-center ${platform === 'napoleon' ? 'bg-blue-600' : 'bg-white'}`}>
+                          {platform === 'napoleon' && <div className="w-2 h-2 bg-white rounded-full" />}
                         </div>
-                        <input type="radio" name="platform" value="default" checked={platform === 'default'} onChange={(e) => setPlatform(e.target.value)} className="hidden" />
-                        <span className={`font-mono text-sm font-bold ${platform === 'default' ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>Default</span>
+                        <input type="radio" name="platform" value="napoleon" checked={platform === 'napoleon'} onChange={(e) => setPlatform(e.target.value)} className="hidden" />
+                        <span className={`font-mono text-sm font-bold ${platform === 'napoleon' ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>Napoleon</span>
                       </label>
                     </div>
 
-                    {platform === 'default' ? (
+                    {platform === 'napoleon' ? (
                       <div className="border-2 border-dashed border-black p-4 bg-gray-50">
                         <div className="flex items-center gap-2 mb-1">
-                          <Cpu size={16} className="text-blue-600" />
-                          <p className="font-mono text-sm font-bold">Stockfish Engine</p>
+                          <Crown size={16} className="text-blue-600" />
+                          <p className="font-mono text-sm font-bold">Napoleon Bonaparte</p>
                         </div>
                         <p className="font-mono text-xs text-gray-500 leading-relaxed">
-                          Play against Stockfish. No username required.
+                          Aggressive, tactical, and relentless. No username required.
                         </p>
                       </div>
                     ) : (
@@ -1329,7 +1347,7 @@ export default function Home() {
           </div>
         ) : (
           /* ACTIVE GAME VIEW */
-          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} />
+          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} napoleonMode={activeMode === 'napoleon'} />
         )}
 
         {/* Dynamic Grid Visual (Always show at bottom of hero unless game is covering) */}
