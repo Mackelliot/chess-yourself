@@ -543,7 +543,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
     if (data.moveNumber === 1) {
       text = generateFirstMoveMessage(data.move, ghostBook, napoleonMode, data.source);
     } else if (data.source === 'ghost') {
-      text = generateGhostMoveMessage(data.move, data.ghostData);
+      text = generateGhostMoveMessage(data.move, data.ghostData, napoleonMode);
     } else {
       text = generateStockfishMessage(data.move, napoleonMode);
     }
@@ -551,9 +551,9 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
   }, [ghostBook, napoleonMode]);
 
   const handlePlayerMove = React.useCallback((data) => {
-    const text = generatePlayerMoveReaction(data);
+    const text = generatePlayerMoveReaction(data, napoleonMode);
     if (text) setChatMessage({ type: 'reaction', text });
-  }, []);
+  }, [napoleonMode]);
 
   const handleRematch = () => {
     prevMoveCountRef.current = 0;
@@ -567,7 +567,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
   const handleResign = () => {
     if (gameState.isGameOver) return;
     gameOverCommentedRef.current = true;
-    setChatMessage({ type: 'system', text: generateResignMessage() });
+    setChatMessage({ type: 'system', text: generateResignMessage(napoleonMode) });
     setGameState(prev => ({ ...prev, isGameOver: true, result: 'resignation', turn: 'b' }));
   };
 
