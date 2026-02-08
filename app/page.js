@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Cpu, User, Zap, Grid3X3, Crown, X, Upload, Play, AlertCircle, Check, Volume2, VolumeX, MessageSquare, MoreVertical, Flag, RotateCcw, LogOut, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { Chess } from 'chess.js';
 import PlayableBoard from '../components/PlayableBoard';
+import NapoleonAvatar from '../components/NapoleonAvatar';
 import {
   generateIntroMessage,
   generateFirstMoveMessage,
@@ -319,6 +320,13 @@ const playSound = (type) => {
   }
 };
 
+// --- COMMENTARY NORMALIZER ---
+function extractCommentary(result) {
+  if (!result) return { text: null, mood: null };
+  if (typeof result === 'string') return { text: result, mood: null };
+  return { text: result.text, mood: result.mood || null };
+}
+
 // --- GAME COMPONENTS ---
 
 const MoveList = ({ moves }) => {
@@ -417,12 +425,16 @@ const AvatarImage = ({ avatarUrl, username, size = 16 }) => (
   </div>
 );
 
-const AICloneChat = ({ message, avatarUrl, username }) => {
+const AICloneChat = ({ message, avatarUrl, username, napoleonMode }) => {
   return (
     <>
       {/* Mobile: compact inline bar */}
       <div className="lg:hidden border-4 border-black bg-white flex items-center gap-3 px-3 py-3">
-        <AvatarImage avatarUrl={avatarUrl} username={username} size={20} />
+        {napoleonMode ? (
+          <NapoleonAvatar mood={message?.mood} size={20} />
+        ) : (
+          <AvatarImage avatarUrl={avatarUrl} username={username} size={20} />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <p className="font-mono text-xs font-bold truncate">{username}</p>
@@ -446,7 +458,11 @@ const AICloneChat = ({ message, avatarUrl, username }) => {
         </div>
 
         <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
-          <AvatarImage avatarUrl={avatarUrl} username={username} size={32} />
+          {napoleonMode ? (
+            <NapoleonAvatar mood={message?.mood} size={32} />
+          ) : (
+            <AvatarImage avatarUrl={avatarUrl} username={username} size={32} />
+          )}
           <div>
             <p className="font-mono text-xs font-bold truncate max-w-[140px]">{username}</p>
             <p className="font-mono text-[10px] text-blue-600">CLONE ACTIVE</p>
@@ -535,24 +551,27 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
 
   // Send intro message on mount
   useEffect(() => {
-    setChatMessage({ type: 'system', text: generateIntroMessage(napoleonMode) });
+    const { text, mood } = extractCommentary(generateIntroMessage(napoleonMode));
+    setChatMessage(text ? { type: 'system', text, mood } : null);
   }, [napoleonMode]);
 
   const handleAIMove = React.useCallback((data) => {
-    let text;
+    let result;
     if (data.moveNumber === 1) {
-      text = generateFirstMoveMessage(data.move, ghostBook, napoleonMode, data.source);
+      result = generateFirstMoveMessage(data.move, ghostBook, napoleonMode, data.source);
     } else if (data.source === 'ghost') {
-      text = generateGhostMoveMessage(data.move, data.ghostData, napoleonMode);
+      result = generateGhostMoveMessage(data.move, data.ghostData, napoleonMode);
     } else {
-      text = generateStockfishMessage(data.move, napoleonMode);
+      result = generateStockfishMessage(data.move, napoleonMode);
     }
-    setChatMessage(text ? { type: 'taunt', text } : null);
+    const { text, mood } = extractCommentary(result);
+    setChatMessage(text ? { type: 'taunt', text, mood } : null);
   }, [ghostBook, napoleonMode]);
 
   const handlePlayerMove = React.useCallback((data) => {
-    const text = generatePlayerMoveReaction(data, napoleonMode);
-    if (text) setChatMessage({ type: 'reaction', text });
+    const result = generatePlayerMoveReaction(data, napoleonMode);
+    const { text, mood } = extractCommentary(result);
+    if (text) setChatMessage({ type: 'reaction', text, mood });
   }, [napoleonMode]);
 
   const handleRematch = () => {
@@ -560,14 +579,16 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
     prevMoveLenRef.current = 0;
     gameOverCommentedRef.current = false;
     setViewIndex(null);
-    setChatMessage({ type: 'system', text: generateIntroMessage(napoleonMode) });
+    const { text, mood } = extractCommentary(generateIntroMessage(napoleonMode));
+    setChatMessage(text ? { type: 'system', text, mood } : null);
     setBoardKey(k => k + 1);
   };
 
   const handleResign = () => {
     if (gameState.isGameOver) return;
     gameOverCommentedRef.current = true;
-    setChatMessage({ type: 'system', text: generateResignMessage(napoleonMode) });
+    const { text, mood } = extractCommentary(generateResignMessage(napoleonMode));
+    setChatMessage(text ? { type: 'system', text, mood } : null);
     setGameState(prev => ({ ...prev, isGameOver: true, result: 'resignation', turn: 'b' }));
   };
 
@@ -641,7 +662,8 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
 
     if (gameState.isGameOver && !gameOverCommentedRef.current) {
       gameOverCommentedRef.current = true;
-      setChatMessage({ type: 'system', text: generateGameOverMessage(gameState.result, gameState.turn, napoleonMode) });
+      const { text, mood } = extractCommentary(generateGameOverMessage(gameState.result, gameState.turn, napoleonMode));
+      setChatMessage(text ? { type: 'system', text, mood } : null);
     }
   }, [gameState.moves, soundEnabled, gameState.turn, gameState.isGameOver, gameState.result]);
 
@@ -683,7 +705,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
 
         {/* AI Clone Chat — above board on mobile, right column on desktop */}
         <div className="w-full lg:w-64 shrink-0 lg:h-[calc(550px+6rem+6px)] order-1 lg:order-3">
-          <AICloneChat message={chatMessage} avatarUrl={avatarUrl} username={username} />
+          <AICloneChat message={chatMessage} avatarUrl={avatarUrl} username={username} napoleonMode={napoleonMode} />
         </div>
 
         {/* Board Column — center */}
