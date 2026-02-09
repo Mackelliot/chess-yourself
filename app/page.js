@@ -548,6 +548,8 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
   const [viewIndex, setViewIndex] = useState(null);
   const prevMoveCountRef = useRef(0);
   const gameOverCommentedRef = useRef(false);
+  const pendingReactionRef = useRef(null);
+  const consecutiveChecksRef = useRef(0);
 
   // Send intro message on mount
   useEffect(() => {
@@ -556,6 +558,20 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
   }, [napoleonMode]);
 
   const handleAIMove = React.useCallback((data) => {
+    // Track consecutive Napoleon checks for rare mocking trigger
+    const isCheck = data.move.includes('+') || data.move.includes('#');
+    if (napoleonMode) {
+      consecutiveChecksRef.current = isCheck ? consecutiveChecksRef.current + 1 : 0;
+    }
+
+    // In Napoleon mode, prefer a pending player reaction over AI move commentary
+    if (napoleonMode && pendingReactionRef.current) {
+      const pending = pendingReactionRef.current;
+      pendingReactionRef.current = null;
+      setChatMessage(pending);
+      return;
+    }
+
     let result;
     if (data.moveNumber === 1) {
       result = generateFirstMoveMessage(data.move, ghostBook, napoleonMode, data.source);
@@ -564,20 +580,33 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
     } else {
       result = generateStockfishMessage(data.move, napoleonMode);
     }
-    const { text, mood } = extractCommentary(result);
+    let { text, mood } = extractCommentary(result);
+
+    // Rare mocking mood: Napoleon checked the player's king 3+ times in a row
+    if (napoleonMode && consecutiveChecksRef.current >= 3 && text) {
+      mood = 'mocking';
+    }
+
     setChatMessage(text ? { type: 'taunt', text, mood } : null);
   }, [ghostBook, napoleonMode]);
 
   const handlePlayerMove = React.useCallback((data) => {
     const result = generatePlayerMoveReaction(data, napoleonMode);
     const { text, mood } = extractCommentary(result);
-    if (text) setChatMessage({ type: 'reaction', text, mood });
+    if (napoleonMode) {
+      // Store reaction — it will be delivered when Napoleon completes his next move
+      pendingReactionRef.current = text ? { type: 'reaction', text, mood } : null;
+    } else {
+      if (text) setChatMessage({ type: 'reaction', text, mood });
+    }
   }, [napoleonMode]);
 
   const handleRematch = () => {
     prevMoveCountRef.current = 0;
     prevMoveLenRef.current = 0;
     gameOverCommentedRef.current = false;
+    pendingReactionRef.current = null;
+    consecutiveChecksRef.current = 0;
     setViewIndex(null);
     const { text, mood } = extractCommentary(generateIntroMessage(napoleonMode));
     setChatMessage(text ? { type: 'system', text, mood } : null);
