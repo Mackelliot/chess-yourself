@@ -188,7 +188,7 @@ const PixelHeader = () => {
       </div>
       <div className="mt-6 md:mt-0 max-w-xs text-xs md:text-sm font-medium font-mono leading-tight text-right md:text-right text-gray-600">
         <p>
-          AI-DRIVEN PLAYSTYLE CLONING.<br/>
+          YOUR CHESS REPLACEMENT.<br/>
           VERSION 2.0.4 (BETA)
         </p>
       </div>
