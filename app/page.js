@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Cpu, User, Zap, Grid3X3, Crown, X, Upload, Play, AlertCircle, Check, Volume2, VolumeX, MessageSquare, MoreVertical, Flag, RotateCcw, LogOut, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { ArrowRight, Cpu, User, Zap, Grid3X3, Crown, X, Upload, Play, AlertCircle, Check, Volume2, VolumeX, MessageSquare, MoreVertical, Flag, RotateCcw, LogOut, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Lock } from 'lucide-react';
 import { Chess } from 'chess.js';
 import PlayableBoard from '../components/PlayableBoard';
 import NapoleonAvatar from '../components/NapoleonAvatar';
@@ -188,8 +188,7 @@ const PixelHeader = () => {
       </div>
       <div className="mt-6 md:mt-0 max-w-xs text-xs md:text-sm font-medium font-mono leading-tight text-right md:text-right text-gray-600">
         <p>
-          YOUR CHESS REPLACEMENT.<br/>
-          VERSION 2.0.4 (BETA)
+          AI chess style cloning
         </p>
       </div>
     </header>
@@ -1456,13 +1455,19 @@ export default function Home() {
           <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
             <div className="mb-8 md:mb-0 text-center md:text-left">
               <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Chess Yourself</h3>
-              <p className="font-mono text-xs text-gray-400">© 2024 SELF_PLAY SYSTEMS INC.</p>
+              <p className="font-mono text-xs text-gray-400">© 2026 SELF_PLAY SYSTEMS INC.</p>
             </div>
             
             <div className="flex gap-8 font-mono text-sm uppercase tracking-wide">
-              <a href="#" className="hover:text-blue-400 transition-colors">Manifesto</a>
-              <a href="#" className="hover:text-blue-400 transition-colors">Pricing</a>
-              <a href="#" className="hover:text-blue-400 transition-colors">Login</a>
+              {['Manifesto', 'Pricing', 'Login'].map((item) => (
+                <div key={item} className="group relative flex items-center gap-2 cursor-not-allowed text-gray-500 hover:text-gray-400 transition-colors">
+                  <span>{item}</span>
+                  <Lock size={14} />
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-3 py-1 border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    Coming Soon
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </footer>
