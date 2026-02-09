@@ -155,6 +155,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
   // Track full move history separately — new Chess(fen) loses history,
   // so game.history() only ever returns the last move
   const moveHistoryRef = useRef([]);
+  const [lastMove, setLastMove] = useState(null);
   const onAIMoveRef = useRef(onAIMove);
   const onPlayerMoveRef = useRef(onPlayerMove);
 
@@ -296,6 +297,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           promotion: chosenUci.length > 4 ? chosenUci.substring(4, 5) : 'q',
         });
         moveHistoryRef.current = [...moveHistoryRef.current, result.san];
+        setLastMove({ from: result.from, to: result.to });
         setGame(gameCopy);
         if (onAIMoveRef.current) {
           onAIMoveRef.current({ move: result.san, source: 'stockfish', ghostData: null, moveNumber: moveHistoryRef.current.length });
@@ -304,15 +306,16 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
         console.error('Stockfish move failed:', bestMove, error);
         // Fallback: make a random legal move so the game never freezes
         const currentGame = gameRef.current;
-        const moves = currentGame.moves();
+        const moves = currentGame.moves({ verbose: true });
         if (moves.length > 0) {
           const gameCopy = new Chess(currentGame.fen());
-          const randomSan = moves[Math.floor(Math.random() * moves.length)];
-          gameCopy.move(randomSan);
-          moveHistoryRef.current = [...moveHistoryRef.current, randomSan];
+          const randomMove = moves[Math.floor(Math.random() * moves.length)];
+          gameCopy.move(randomMove.san);
+          moveHistoryRef.current = [...moveHistoryRef.current, randomMove.san];
+          setLastMove({ from: randomMove.from, to: randomMove.to });
           setGame(gameCopy);
           if (onAIMoveRef.current) {
-            onAIMoveRef.current({ move: randomSan, source: 'stockfish', ghostData: null, moveNumber: moveHistoryRef.current.length });
+            onAIMoveRef.current({ move: randomMove.san, source: 'stockfish', ghostData: null, moveNumber: moveHistoryRef.current.length });
           }
         }
       }
@@ -356,6 +359,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
             try {
               const gameCopy = new Chess(game.fen());
               const result = gameCopy.move(lineEntry.move);
+              setLastMove({ from: result.from, to: result.to });
               commitMove(gameCopy, result.san);
               if (onAIMoveRef.current) {
                 onAIMoveRef.current({ move: result.san, source: 'remusat', ghostData: null, moveNumber: moveHistoryRef.current.length });
@@ -379,6 +383,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           const ghostData = getGhostStats(game.fen(), ghostBook);
           const gameCopy = new Chess(game.fen());
           const result = gameCopy.move(ghostMove);
+          setLastMove({ from: result.from, to: result.to });
           commitMove(gameCopy, result.san);
           if (onAIMoveRef.current) {
             onAIMoveRef.current({ move: result.san, source: 'ghost', ghostData, moveNumber: moveHistoryRef.current.length });
@@ -405,12 +410,13 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
         const pTurn = playerColorRef.current === 'white' ? 'w' : 'b';
         if (currentGame.turn() !== pTurn && !currentGame.isGameOver()) {
           console.warn('Stockfish response timeout — making random legal move');
-          const moves = currentGame.moves();
+          const moves = currentGame.moves({ verbose: true });
           if (moves.length > 0) {
             const gameCopy = new Chess(currentGame.fen());
-            const randomSan = moves[Math.floor(Math.random() * moves.length)];
-            gameCopy.move(randomSan);
-            moveHistoryRef.current = [...moveHistoryRef.current, randomSan];
+            const randomMove = moves[Math.floor(Math.random() * moves.length)];
+            gameCopy.move(randomMove.san);
+            moveHistoryRef.current = [...moveHistoryRef.current, randomMove.san];
+            setLastMove({ from: randomMove.from, to: randomMove.to });
             setGame(gameCopy);
           }
         }
@@ -440,6 +446,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
 
       if (move === null) return false;
 
+      setLastMove({ from: move.from, to: move.to });
       commitMove(gameCopy, move.san);
       setSelectedSquare(null);
       setLegalMoveSquares({});
@@ -561,7 +568,11 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
           customDarkSquareStyle={{ backgroundColor: '#2563eb' }}
           customDropSquareStyle={{ boxShadow: 'inset 0 0 0 4px #2563eb' }}
           customSquareStyles={isReviewing ? {} : {
-            ...(selectedSquare ? { [selectedSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' } } : {}),
+            ...(lastMove ? {
+              [lastMove.from]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
+              [lastMove.to]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
+            } : {}),
+            ...(selectedSquare ? { [selectedSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.6)' } } : {}),
             ...legalMoveSquares,
           }}
           isDraggablePiece={isReviewing ? () => false : ({ piece }) => piece.startsWith(playerColor === 'white' ? 'w' : 'b')}
