@@ -130,36 +130,36 @@ function startIdleLoop(setFrame, timerRef) {
   setFrame('Napoleon.jpg');
 
   const scheduleBlink = () => {
-    const delay = 3000 + Math.random() * 3000;
+    const delay = 2000 + Math.random() * 2500;
     timerRef._blink = setTimeout(() => {
       setFrame('Napoleon-blink.jpg');
       timerRef._blinkRevert = setTimeout(() => {
-        setFrame('Napoleon.jpg');
-        scheduleBlink();
+        // Sometimes do a blink → glance → blink sandwich
+        if (Math.random() < 0.25) {
+          setFrame('Napoleon-glance.jpg');
+          timerRef._glanceRevert = setTimeout(() => {
+            setFrame('Napoleon-blink.jpg');
+            timerRef._glanceBlinkRevert = setTimeout(() => {
+              setFrame('Napoleon.jpg');
+              scheduleBlink();
+            }, 150);
+          }, 400);
+        } else {
+          setFrame('Napoleon.jpg');
+          scheduleBlink();
+        }
       }, 150);
     }, delay);
   };
 
-  const scheduleGlance = () => {
-    const delay = 8000 + Math.random() * 4000;
-    timerRef._glance = setTimeout(() => {
-      setFrame('Napoleon-glance.jpg');
-      timerRef._glanceRevert = setTimeout(() => {
-        setFrame('Napoleon.jpg');
-        scheduleGlance();
-      }, 400);
-    }, delay);
-  };
-
   scheduleBlink();
-  scheduleGlance();
 }
 
 function stopIdleLoop(timerRef) {
   clearTimeout(timerRef._blink);
   clearTimeout(timerRef._blinkRevert);
-  clearTimeout(timerRef._glance);
   clearTimeout(timerRef._glanceRevert);
+  clearTimeout(timerRef._glanceBlinkRevert);
 }
 
 const NapoleonAvatar = ({ mood, size = 16 }) => {
