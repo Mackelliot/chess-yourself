@@ -509,8 +509,8 @@ const AICloneChat = ({ message, avatarUrl, username, napoleonMode }) => {
           ) : (
             <AvatarImage avatarUrl={avatarUrl} username={username} size={32} />
           )}
-          <div>
-            <p className="font-mono text-xs font-bold truncate max-w-[140px]">{username}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-xs font-bold truncate">{username}</p>
             <p className="font-mono text-[10px] text-blue-600">CLONE ACTIVE</p>
           </div>
         </div>
