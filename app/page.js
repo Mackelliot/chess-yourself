@@ -1238,6 +1238,18 @@ export default function Home() {
     }
   };
 
+  const handleNapoleonClick = async () => {
+    initAudio();
+    setError('');
+    try {
+      const res = await fetch('/napoleon_ghost_book.json');
+      const data = res.ok ? await res.json() : null;
+      handleGameStart({ mode: 'napoleon', username: 'Napoleon Bonaparte', ghostBook: data, platform: 'napoleon' });
+    } catch (_) {
+      handleGameStart({ mode: 'napoleon', username: 'Napoleon Bonaparte', ghostBook: null, platform: 'napoleon' });
+    }
+  };
+
   const handleExitGame = () => {
     setGameActive(false);
     setActiveUsername('');
@@ -1278,120 +1290,96 @@ export default function Home() {
       {/* Hero Section */}
       <main className="relative min-h-[80vh]">
         {!gameActive ? (
-          <div className="container mx-auto px-6 pt-20 pb-12 md:pt-32 md:pb-20">
-            <div className="flex flex-col lg:flex-row justify-between items-start gap-12 lg:gap-20">
-              <div className="max-w-4xl flex-1">
-                <h1 className="text-[12vw] md:text-[8rem] leading-[0.85] font-black uppercase tracking-tighter text-[#2a2118] mb-8">
-                  Stop<br />
-                  Playing<br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 stroke-black">Against</span><br />
-                  <GlitchText>Losers.</GlitchText>
-                </h1>
-                
-                <div className="max-w-xl mt-8 lg:mt-12">
-                  <p className="text-xl md:text-2xl font-bold leading-tight mb-6">
-                    Your friends are too easy. The engines are too robotic. 
-                  </p>
-                  <p className="font-mono text-sm md:text-base text-gray-600 mb-8 border-l-4 border-blue-500 pl-4">
-                    Our neural engine analyzes your game history to build the ultimate opponent: <strong className="text-black">An AI clone of yourself.</strong>
-                  </p>
+          <div className="container mx-auto px-6 flex flex-col items-center text-center pt-16 pb-12 md:pt-28 md:pb-20">
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9] mb-6">
+              Stop Playing<br />
+              Against <GlitchText>Losers.</GlitchText>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="max-w-lg font-mono text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed mb-10 md:mb-14">
+              We trained an AI on your chess games. It knows your openings. It knows your blind spots. <strong className="text-black">Can you beat yourself?</strong>
+            </p>
+
+            {/* CTA Form */}
+            <div className="w-full max-w-xl">
+              <form onSubmit={handleHeroSubmit} className="flex flex-col gap-4">
+                {/* Platform Toggle */}
+                <div className="flex justify-center gap-2 mb-1">
+                  {[
+                    { value: 'chesscom', label: 'Chess.com' },
+                    { value: 'lichess', label: 'Lichess' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => { setPlatform(value); setError(''); }}
+                      className={`px-5 py-2 font-mono text-sm font-bold border-2 border-black transition-all duration-150 ${
+                        platform === value
+                          ? 'bg-black text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
-              </div>
 
-              {/* Right Column: Form & Badge */}
-              <div className="w-full max-w-lg shrink-0 relative lg:mt-8">
-
-                {/* INLINE FORM CTA */}
-                <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative z-10">
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Create AI Clone</h3>
-                    <p className="font-mono text-sm text-gray-600 leading-relaxed">
-                      Enter your username to analyze your playstyle and generate an AI clone of yourself.
-                    </p>
+                {isLoading ? (
+                  <div>
+                    <div className="w-full p-4 border-2 border-green-500 bg-green-50 font-mono text-lg flex items-center justify-between mb-4">
+                      <span className="font-bold text-green-800">{usernameInput}</span>
+                      <Check size={18} className="text-green-600" />
+                    </div>
+                    <ThinkingLoader />
                   </div>
-
-                  <form onSubmit={handleHeroSubmit} className="flex flex-col gap-5">
-                    <div className="flex gap-6 border-b-2 border-black/5 pb-5">
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-4 h-4 border-2 border-black rounded-full flex items-center justify-center ${platform === 'chesscom' ? 'bg-blue-600' : 'bg-white'}`}>
-                          {platform === 'chesscom' && <div className="w-2 h-2 bg-white rounded-full" />}
-                        </div>
-                        <input type="radio" name="platform" value="chesscom" checked={platform === 'chesscom'} onChange={(e) => setPlatform(e.target.value)} className="hidden" />
-                        <span className={`font-mono text-sm font-bold ${platform === 'chesscom' ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>Chess.com</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-4 h-4 border-2 border-black rounded-full flex items-center justify-center ${platform === 'lichess' ? 'bg-blue-600' : 'bg-white'}`}>
-                          {platform === 'lichess' && <div className="w-2 h-2 bg-white rounded-full" />}
-                        </div>
-                        <input type="radio" name="platform" value="lichess" checked={platform === 'lichess'} onChange={(e) => setPlatform(e.target.value)} className="hidden" />
-                        <span className={`font-mono text-sm font-bold ${platform === 'lichess' ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>Lichess</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-4 h-4 border-2 border-black rounded-full flex items-center justify-center ${platform === 'napoleon' ? 'bg-blue-600' : 'bg-white'}`}>
-                          {platform === 'napoleon' && <div className="w-2 h-2 bg-white rounded-full" />}
-                        </div>
-                        <input type="radio" name="platform" value="napoleon" checked={platform === 'napoleon'} onChange={(e) => setPlatform(e.target.value)} className="hidden" />
-                        <span className={`font-mono text-sm font-bold ${platform === 'napoleon' ? 'text-black' : 'text-gray-500 group-hover:text-black'}`}>Napoleon</span>
-                      </label>
+                ) : (
+                  <>
+                    {/* Input + Button Row */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="text"
+                        placeholder={platform === 'chesscom' ? 'Enter Chess.com username' : 'Enter Lichess username'}
+                        value={usernameInput}
+                        onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
+                        className="flex-1 p-4 border-2 border-black font-mono text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white placeholder:text-gray-400"
+                      />
+                      <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-8 py-4 font-mono font-bold uppercase tracking-widest border-2 border-blue-600 hover:bg-blue-700 hover:border-blue-700 transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        Clone Me <ArrowRight size={18} />
+                      </button>
                     </div>
 
-                    {platform === 'napoleon' ? (
-                      <div className="border-2 border-dashed border-black p-4 bg-gray-50">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Crown size={16} className="text-blue-600" />
-                          <p className="font-mono text-sm font-bold">Napoleon Bonaparte</p>
-                        </div>
-                        <p className="font-mono text-xs text-gray-500 leading-relaxed">
-                          Aggressive, tactical, and relentless. No username required.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        {isLoading ? (
-                          <div className="w-full p-4 border-2 border-green-500 bg-green-50 font-mono text-lg flex items-center justify-between">
-                            <span className="font-bold text-green-800">{usernameInput}</span>
-                            <Check size={18} className="text-green-600" />
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder={platform === 'chesscom' ? "Chess.com Username" : "Lichess Username"}
-                            value={usernameInput}
-                            onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
-                            className="w-full p-4 border-2 border-black font-mono text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-gray-50 placeholder:text-gray-400"
-                          />
-                        )}
-                      </div>
-                    )}
-
                     {error && (
-                      <div className="bg-red-100 border-l-4 border-red-500 p-3 flex items-center gap-2 text-red-700 font-mono text-xs animate-in slide-in-from-top-2">
+                      <div className="bg-red-100 border-l-4 border-red-500 p-3 flex items-center gap-2 text-red-700 font-mono text-xs text-left">
                         <AlertCircle size={14} />
                         {error}
                       </div>
                     )}
+                  </>
+                )}
+              </form>
 
-                    {isLoading ? (
-                      <ThinkingLoader />
-                    ) : (
-                      <button
-                        type="submit"
-                        className="bg-black text-white p-4 font-mono font-bold uppercase tracking-widest border-2 border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(59,130,246,1)] transition-all duration-200 flex justify-center items-center gap-2"
-                      >
-                        Play Against Clone <ArrowRight size={18} />
-                      </button>
-                    )}
-                  </form>
-                </div>
-                
-                <div className="mt-4 flex justify-between items-center px-1">
-                  <button 
-                    onClick={() => setShowModal(true)}
-                    className="text-xs font-mono font-bold text-gray-500 hover:text-black underline decoration-2 underline-offset-2 transition-colors"
+              {/* Secondary Actions */}
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <p className="font-mono text-sm text-gray-500">
+                  No account?{' '}
+                  <button
+                    onClick={handleNapoleonClick}
+                    className="text-blue-600 font-bold hover:text-blue-800 underline decoration-2 underline-offset-2 transition-colors"
                   >
-                    Upload PGN / Advanced Options
+                    Challenge the Napoleon Bot
                   </button>
-                </div>
+                </p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="font-mono text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  or upload a PGN file
+                </button>
               </div>
             </div>
           </div>
