@@ -177,20 +177,67 @@ const PixelWord = ({ word }) => (
 );
 
 // --- HEADER ---
-const PixelHeader = () => {
+const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
   return (
-    <header className="w-full flex flex-col md:flex-row justify-between items-start md:items-center py-6 px-6 md:px-12 border-b-4 border-black bg-[#FDFBF7] sticky top-0 z-40">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-col gap-2 md:gap-3">
-           <PixelWord word="CHESS" /> 
-           <PixelWord word="YOURSELF" />
+    <header className="w-full flex flex-row justify-between items-center py-4 md:py-6 px-6 md:px-12 border-b-4 border-black bg-[#FDFBF7] sticky top-0 z-40">
+      <div className="flex flex-col gap-2 md:gap-3">
+         <PixelWord word="CHESS" />
+         <PixelWord word="YOURSELF" />
+      </div>
+      {gameActive ? (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExitGame}
+            className="flex items-center gap-2 px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-gray-600 hover:text-black hover:bg-black/5 transition-colors"
+          >
+            <LogOut size={14} />
+            <span className="hidden sm:inline">Home</span>
+          </button>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="flex items-center gap-2 px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-gray-600 hover:text-black hover:bg-black/5 transition-colors"
+              title="Settings"
+            >
+              <MoreVertical size={14} />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+                <button
+                  onClick={() => { setSoundEnabled(s => !s); setMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
+                >
+                  {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                  {soundEnabled ? 'Sound On' : 'Sound Off'}
+                </button>
+                <button
+                  onClick={() => { onExitGame(); setMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left border-t border-black/10"
+                >
+                  <LogOut size={16} /> Back to Menu
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="mt-6 md:mt-0 max-w-xs text-xs md:text-sm font-medium font-mono leading-tight text-right md:text-right text-gray-600">
-        <p>
-          AI chess style cloning
+      ) : (
+        <p className="text-xs md:text-sm font-medium font-mono leading-tight text-right text-gray-600">
+          AI CHESS PLAYSTYLE CLONING
         </p>
-      </div>
+      )}
     </header>
   );
 };
@@ -539,9 +586,8 @@ const GameMenu = ({ soundEnabled, setSoundEnabled, onResign, onRematch, onExit, 
   );
 };
 
-const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, napoleonMode = false }) => {
+const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, napoleonMode = false, soundEnabled, setSoundEnabled }) => {
   const [gameState, setGameState] = useState({ turn: 'w', moves: [], isGameOver: false, result: null });
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [boardKey, setBoardKey] = useState(0);
   const [chatMessage, setChatMessage] = useState(null);
   const [viewIndex, setViewIndex] = useState(null);
@@ -1172,6 +1218,7 @@ export default function Home() {
   const [activePlatform, setActivePlatform] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [activeMode, setActiveMode] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Inline form state
   const [platform, setPlatform] = useState('chesscom');
@@ -1285,7 +1332,7 @@ export default function Home() {
           color: #2563eb;
         }
       `}</style>
-      <PixelHeader />
+      <PixelHeader gameActive={gameActive} onExitGame={handleExitGame} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
 
       {/* Hero Section */}
       <main className="relative min-h-[80vh]">
@@ -1294,7 +1341,7 @@ export default function Home() {
             {/* Headline */}
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9] mb-6">
               Stop Playing<br />
-              Against <GlitchText>Losers.</GlitchText>
+              <span className="text-[#2563eb]">Against</span> <GlitchText>Losers.</GlitchText>
             </h1>
 
             {/* Subheadline */}
@@ -1363,29 +1410,44 @@ export default function Home() {
                 )}
               </form>
 
-              {/* Secondary Actions */}
-              <div className="mt-6 flex flex-col items-center gap-2">
-                <p className="font-mono text-sm text-gray-500">
-                  No account?{' '}
-                  <button
-                    onClick={handleNapoleonClick}
-                    className="text-blue-600 font-bold hover:text-blue-800 underline decoration-2 underline-offset-2 transition-colors"
-                  >
-                    Challenge the Napoleon Bot
-                  </button>
-                </p>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="font-mono text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  or upload a PGN file
-                </button>
+              {/* Divider */}
+              <div className="mt-8 flex items-center gap-4 w-full">
+                <div className="flex-1 h-px bg-black/10" />
+                <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest">or try our featured bot</span>
+                <div className="flex-1 h-px bg-black/10" />
               </div>
+
+              {/* Napoleon Card */}
+              <button
+                onClick={handleNapoleonClick}
+                className="mt-4 w-full border-2 border-black bg-white p-5 flex items-center gap-4 text-left hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all duration-200 group"
+              >
+                <div className="shrink-0">
+                  <NapoleonAvatar size={24} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-sm font-bold">Napoleon Bonaparte</span>
+                    <span className="font-mono text-[10px] bg-blue-600 text-white px-1.5 py-0.5 uppercase tracking-wider leading-none">Featured</span>
+                  </div>
+                  <p className="font-mono text-xs text-gray-500 leading-relaxed">
+                    Built from Napoleon's real chess games, augmented with his battlefield tactics and military strategy. No account needed.
+                  </p>
+                </div>
+                <ArrowRight size={18} className="shrink-0 text-gray-400 group-hover:text-black group-hover:translate-x-1 transition-all" />
+              </button>
+
+              <button
+                onClick={() => setShowModal(true)}
+                className="mt-3 font-mono text-xs text-gray-400 hover:text-gray-600 underline decoration-1 underline-offset-2 transition-colors"
+              >
+                Advanced Options
+              </button>
             </div>
           </div>
         ) : (
           /* ACTIVE GAME VIEW */
-          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} napoleonMode={activeMode === 'napoleon'} />
+          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} napoleonMode={activeMode === 'napoleon'} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
         )}
 
         {/* Dynamic Grid Visual (Always show at bottom of hero unless game is covering) */}
@@ -1447,7 +1509,7 @@ export default function Home() {
             </div>
             
             <div className="flex gap-8 font-mono text-sm uppercase tracking-wide">
-              {['Manifesto', 'Pricing', 'Login'].map((item) => (
+              {['Manifesto', 'Login'].map((item) => (
                 <div key={item} className="group relative flex items-center gap-2 cursor-not-allowed text-gray-500 hover:text-gray-400 transition-colors">
                   <span>{item}</span>
                   <Lock size={14} />
