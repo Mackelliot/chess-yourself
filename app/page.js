@@ -753,14 +753,14 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
     <div className="w-full flex flex-col items-center justify-start py-2 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
       {/* Game header — compact on mobile */}
       <div className="flex justify-between w-full max-w-[1200px] mb-2 md:mb-6 items-center border-b-4 border-black pb-2 md:pb-4">
-        <div>
-           <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter">Simulation Active</h2>
-           <p className="font-mono text-[10px] md:text-sm text-gray-600 hidden md:block">
+        <div className="min-w-0 flex-1">
+           <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter truncate">Simulation Active</h2>
+           <p className="font-mono text-[10px] md:text-sm text-gray-600 hidden md:block truncate">
              OPPONENT: <span className="text-blue-600 font-bold">AI CLONE (WHITE)</span> vs <span className="text-black font-bold">{username} (BLACK)</span>
            </p>
         </div>
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className={`${turnColor} text-white px-2 md:px-4 py-1 md:py-2 font-mono text-[10px] md:text-sm font-bold uppercase tracking-wider transition-colors`}>
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <div className={`${turnColor} text-white px-2 md:px-4 py-1 md:py-2 font-mono text-[10px] md:text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap`}>
             {turnLabel}
           </div>
           <GameMenu
