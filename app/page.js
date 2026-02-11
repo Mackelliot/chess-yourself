@@ -191,7 +191,7 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled }) 
   }, [menuOpen]);
 
   return (
-    <header className="w-full flex flex-row justify-between items-center py-4 md:py-6 px-6 md:px-12 border-b-4 border-black bg-[#FDFBF7] sticky top-0 z-40">
+    <header className={`w-full flex flex-row justify-between items-center py-4 md:py-6 px-6 md:px-12 ${gameActive ? 'border-b border-black/10' : 'border-b-4 border-black'} bg-[#FDFBF7] sticky top-0 z-40`}>
       <div className="flex flex-col gap-2 md:gap-3">
          <PixelWord word="CHESS" />
          <PixelWord word="YOURSELF" />
@@ -215,7 +215,7 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled }) 
               <span className="hidden sm:inline">Settings</span>
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-black/10 rounded-sm shadow-lg z-50">
                 <button
                   onClick={() => { setSoundEnabled(s => !s); setMenuOpen(false); }}
                   className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
@@ -234,9 +234,7 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled }) 
           </div>
         </div>
       ) : (
-        <p className="text-xs md:text-sm font-medium font-mono leading-tight text-right text-gray-600">
-          AI CHESS PLAYSTYLE CLONING
-        </p>
+        <div />
       )}
     </header>
   );
@@ -389,8 +387,8 @@ const MoveList = ({ moves }) => {
   }, [moves]);
 
   return (
-    <div className="border-4 border-black bg-white flex flex-col h-full">
-      <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b-2 border-black/10 flex justify-between shrink-0">
+    <div className="bg-white shadow-sm rounded-sm flex flex-col h-full">
+      <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b border-black/8 flex justify-between shrink-0">
         <span>NOTATION</span>
         <span>{moves.length} MOVES</span>
       </div>
@@ -475,7 +473,7 @@ const AICloneChat = ({ message, avatarUrl, username, napoleonMode }) => {
   return (
     <>
       {/* Mobile: compact inline bar */}
-      <div className="lg:hidden border-4 border-black bg-white flex items-center gap-3 px-3 py-3">
+      <div className="lg:hidden bg-white shadow-sm rounded-sm flex items-center gap-3 px-3 py-3">
         {napoleonMode ? (
           <NapoleonAvatar mood={message?.mood} size={20} />
         ) : (
@@ -497,13 +495,13 @@ const AICloneChat = ({ message, avatarUrl, username, napoleonMode }) => {
       </div>
 
       {/* Desktop: full card */}
-      <div className="hidden lg:flex border-4 border-black bg-white flex-col h-full">
-        <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b-2 border-black/10 flex justify-between items-center shrink-0">
+      <div className="hidden lg:flex bg-white shadow-sm rounded-sm flex-col h-full">
+        <div className="font-mono text-xs font-bold px-4 py-3 text-gray-400 border-b border-black/8 flex justify-between items-center shrink-0">
           <span>AI CLONE</span>
           <MessageSquare size={14} />
         </div>
 
-        <div className="px-4 py-4 border-b-2 border-black/10 flex items-center gap-3 shrink-0">
+        <div className="px-4 py-4 border-b border-black/8 flex items-center gap-3 shrink-0">
           {napoleonMode ? (
             <NapoleonAvatar mood={message?.mood} size={32} />
           ) : (
@@ -552,7 +550,7 @@ const GameMenu = ({ soundEnabled, setSoundEnabled, onResign, onRematch, onExit, 
         <MoreVertical size={20} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+        <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-black/10 rounded-sm shadow-lg z-50">
           <button
             onClick={() => { onRematch(); setOpen(false); }}
             className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
@@ -750,17 +748,17 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
     : isWhiteTurn ? 'bg-black' : 'bg-blue-600';
 
   return (
-    <div className="w-full flex flex-col items-center justify-start py-2 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
-      {/* Game header — compact on mobile */}
-      <div className="flex justify-between w-full max-w-[1200px] mb-2 md:mb-6 items-center border-b-4 border-black pb-2 md:pb-4">
+    <div className="w-full flex flex-col items-center justify-start py-1 md:py-8 px-2 md:px-6 animate-in fade-in duration-500 min-h-[85vh]">
+      {/* Game header — hidden on mobile, full on desktop */}
+      <div className="hidden md:flex justify-between w-full max-w-[1200px] mb-6 items-center border-b border-black/10 pb-4">
         <div className="min-w-0 flex-1">
-           <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter truncate">Simulation Active</h2>
-           <p className="font-mono text-[10px] md:text-sm text-gray-600 hidden md:block truncate">
+           <h2 className="text-3xl font-black uppercase tracking-tighter truncate">Simulation Active</h2>
+           <p className="font-mono text-sm text-gray-600 truncate">
              OPPONENT: <span className="text-blue-600 font-bold">AI CLONE (WHITE)</span> vs <span className="text-black font-bold">{username} (BLACK)</span>
            </p>
         </div>
-        <div className="flex items-center gap-2 md:gap-4 shrink-0">
-          <div className={`${turnColor} text-white px-2 md:px-4 py-1 md:py-2 font-mono text-[10px] md:text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap`}>
+        <div className="flex items-center gap-4 shrink-0">
+          <div className={`${turnColor} text-white px-4 py-2 font-mono text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap`}>
             {turnLabel}
           </div>
           <GameMenu
@@ -774,8 +772,23 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
         </div>
       </div>
 
+      {/* Mobile-only slim turn bar */}
+      <div className="flex md:hidden justify-between items-center w-full mb-1 px-1">
+        <div className={`${turnColor} text-white px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap rounded-sm`}>
+          {turnLabel}
+        </div>
+        <GameMenu
+          soundEnabled={soundEnabled}
+          setSoundEnabled={setSoundEnabled}
+          onResign={handleResign}
+          onRematch={handleRematch}
+          onExit={onExit}
+          isGameOver={gameState.isGameOver}
+        />
+      </div>
+
       {/* Main Game Layout — 3 columns on desktop: Notation | Board | AI Chat */}
-      <div className="flex flex-col lg:flex-row gap-2 md:gap-4 items-start justify-center w-full max-w-[1200px] flex-grow">
+      <div className="flex flex-col lg:flex-row gap-1.5 md:gap-4 items-start justify-center w-full max-w-[1200px] flex-grow">
 
         {/* AI Clone Chat — above board on mobile, right column on desktop */}
         <div className="w-full lg:w-64 shrink-0 lg:h-[calc(550px+6rem+6px)] order-1 lg:order-3">
@@ -784,9 +797,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
 
         {/* Board Column — center */}
         <div className="flex-1 flex flex-col items-center w-full gap-2 md:gap-3 order-2 lg:order-2">
-          <div className={`w-full max-w-[100vw] md:max-w-[550px] border-0 md:border-4 bg-[#FDFBF7] transition-all duration-500 ${
-            gameState.isGameOver ? 'md:border-black' : isWhiteTurn ? 'md:border-black' : 'md:board-player-turn'
-          }`}>
+          <div className="w-full max-w-[100vw] md:max-w-[550px] rounded-sm shadow-md bg-[#FDFBF7] transition-all duration-500 overflow-hidden">
             <PlayableBoard key={boardKey} ghostBook={ghostBook} playerColor="black" onGameUpdate={handleGameUpdate} onAIMove={handleAIMove} onPlayerMove={handlePlayerMove} displayPosition={displayPosition} napoleonMode={napoleonMode} />
           </div>
           {isWhiteTurn && !gameState.isGameOver && (
@@ -800,7 +811,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
             <button
               onClick={goToStart}
               disabled={totalMoves === 0 || viewIndex === 0}
-              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-black/5 hover:text-black disabled:opacity-30 transition-colors"
               title="Go to start"
             >
               <ChevronsLeft size={16} />
@@ -808,7 +819,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
             <button
               onClick={goBack}
               disabled={totalMoves === 0 || viewIndex === 0}
-              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-black/5 hover:text-black disabled:opacity-30 transition-colors"
               title="Previous move"
             >
               <ChevronLeft size={16} />
@@ -821,7 +832,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
             <button
               onClick={goForward}
               disabled={viewIndex === null}
-              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-black/5 hover:text-black disabled:opacity-30 transition-colors"
               title="Next move"
             >
               <ChevronRight size={16} />
@@ -829,7 +840,7 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
             <button
               onClick={goToEnd}
               disabled={viewIndex === null}
-              className="p-1.5 font-mono border-2 border-black bg-white hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-black transition-colors"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-black/5 hover:text-black disabled:opacity-30 transition-colors"
               title="Go to latest"
             >
               <ChevronsRight size={16} />
@@ -896,7 +907,7 @@ const GameOverModal = ({ gameState, onRematch, onExit }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div className={`relative bg-[#FDFBF7] border-4 ${accent} w-full max-w-sm shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] animate-in zoom-in-95 duration-200`}>
+      <div className={`relative bg-[#FDFBF7] border-l-4 ${accent} w-full max-w-sm rounded-sm shadow-2xl animate-in zoom-in-95 duration-200`}>
         <div className="p-8 text-center">
           <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">{title}</h2>
           <p className="font-mono text-sm text-gray-600 mb-2">{gameState.moves.length} moves played</p>
@@ -904,7 +915,7 @@ const GameOverModal = ({ gameState, onRematch, onExit }) => {
           <div className="flex flex-col gap-3">
             <button
               onClick={onRematch}
-              className="bg-black text-white p-3 font-mono font-bold uppercase tracking-widest border-2 border-black hover:bg-white hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(59,130,246,1)] transition-all duration-200"
+              className="bg-black text-white p-3 font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-gray-800 transition-all duration-200"
             >
               Rematch
             </button>
@@ -1234,6 +1245,7 @@ export default function Home() {
     setActiveMode(mode || null);
     setGameActive(true);
     setShowModal(false);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleHeroSubmit = async (e) => {
