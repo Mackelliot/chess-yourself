@@ -1107,13 +1107,16 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
                         <Check size={18} className="text-green-600" />
                       </div>
                     ) : (
-                      <input
-                        type="text"
-                        placeholder="e.g. MagnusCarlsen"
-                        value={inputValue}
-                        onChange={(e) => { setInputValue(e.target.value); setValidated(false); setError(''); }}
-                        className="w-full p-4 border-2 border-black font-mono focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white"
-                      />
+                      <>
+                        <input
+                          type="text"
+                          placeholder="e.g. MagnusCarlsen"
+                          value={inputValue}
+                          onChange={(e) => { setInputValue(e.target.value); setValidated(false); setError(''); }}
+                          className="w-full p-4 border-2 border-black font-mono focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white"
+                        />
+                        <p className="font-mono text-[10px] text-gray-400">Uses public game data only. No login required.</p>
+                      </>
                     )}
                   </div>
                 )}
@@ -1379,7 +1382,7 @@ export default function Home() {
 
             {/* Subheadline */}
             <p className="max-w-lg font-mono text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed mb-10 md:mb-14">
-              We trained an AI on your chess games. It knows your openings. It knows your blind spots. <strong className="text-black">Can you beat yourself?</strong>
+              We trained an AI on your chess games. Master your own openings. Fix your blind spots. The ultimate training tool. <strong className="text-black">Can you beat yourself?</strong>
             </p>
 
             {/* CTA Form */}
@@ -1432,6 +1435,7 @@ export default function Home() {
                         Clone Me <ArrowRight size={18} />
                       </button>
                     </div>
+                    <p className="font-mono text-[10px] text-gray-400 text-left -mt-2">Uses public game data only. No login required.</p>
 
                     {error && (
                       <div className="bg-red-100 border-l-4 border-red-500 p-3 flex items-center gap-2 text-red-700 font-mono text-xs text-left">
