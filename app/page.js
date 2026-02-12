@@ -1172,11 +1172,6 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
 
 const FeatureCard = ({ title, desc, icon: Icon, number, comingSoon }) => (
   <div className="border-4 border-black p-8 bg-white hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 group relative">
-    {comingSoon && (
-      <span className="absolute top-3 right-3 bg-black text-white font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-1">
-        Coming Soon
-      </span>
-    )}
     <div className="flex justify-between items-start mb-6">
       <div className="bg-blue-500 text-white p-3 font-mono text-xl border-2 border-black">
         {number}
@@ -1497,7 +1492,7 @@ export default function Home() {
             <div className="container mx-auto">
               <div className="flex flex-col md:flex-row justify-between items-end mb-16 border-b-4 border-black pb-8">
                 <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter max-w-2xl">
-                  The only way to win is to beat yourself.
+                  Your toughest opponent is in the mirror.
                 </h2>
                 <div className="mt-4 md:mt-0 font-mono text-sm text-right">
                   Data Points: 1,002,491<br/>
