@@ -1465,7 +1465,7 @@ export default function Home() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-sm font-bold">Napoleon Bonaparte</span>
-                    <span className="font-mono text-[10px] bg-blue-600 text-white px-1.5 py-0.5 uppercase tracking-wider leading-none">Featured</span>
+                    <span className="font-mono text-[10px] bg-blue-600 text-white px-1.5 py-0.5 uppercase tracking-wider leading-none">Featured Clone</span>
                   </div>
                   <p className="font-mono text-xs text-gray-500 leading-relaxed">
                     Built from Napoleon's real chess games, augmented with his battlefield tactics and military strategy. No account needed.
