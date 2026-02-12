@@ -177,7 +177,7 @@ const PixelWord = ({ word }) => (
 );
 
 // --- HEADER ---
-const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled }) => {
+const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled, onResign, onRematch, isGameOver }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -198,24 +198,31 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled }) 
       </div>
       {gameActive ? (
         <div className="flex items-center gap-3">
-          <button
-            onClick={onExitGame}
-            className="flex items-center gap-2 px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-gray-600 hover:text-black hover:bg-black/5 transition-colors"
-          >
-            <LogOut size={14} />
-            <span className="hidden sm:inline">Home</span>
-          </button>
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(o => !o)}
               className="flex items-center gap-2 px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-gray-600 hover:text-black hover:bg-black/5 transition-colors"
-              title="Settings"
+              title="Menu"
             >
               <MoreVertical size={14} />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">Menu</span>
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-black/10 rounded-sm shadow-lg z-50">
+                <button
+                  onClick={() => { onRematch?.(); setMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
+                >
+                  <RotateCcw size={16} /> New Game
+                </button>
+                {!isGameOver && (
+                  <button
+                    onClick={() => { onResign?.(); setMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-red-50 text-red-600 transition-colors text-left"
+                  >
+                    <Flag size={16} /> Resign
+                  </button>
+                )}
                 <button
                   onClick={() => { setSoundEnabled(s => !s); setMenuOpen(false); }}
                   className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
@@ -527,64 +534,7 @@ const AICloneChat = ({ message, avatarUrl, username, napoleonMode }) => {
   );
 };
 
-const GameMenu = ({ soundEnabled, setSoundEnabled, onResign, onRematch, onExit, isGameOver }) => {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="p-2 hover:bg-black/5 rounded transition-colors"
-        title="Game Menu"
-      >
-        <MoreVertical size={20} />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-black/10 rounded-sm shadow-lg z-50">
-          <button
-            onClick={() => { onRematch(); setOpen(false); }}
-            className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
-          >
-            <RotateCcw size={16} /> New Game
-          </button>
-          {!isGameOver && (
-            <button
-              onClick={() => { onResign(); setOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-red-50 text-red-600 transition-colors text-left"
-            >
-              <Flag size={16} /> Resign
-            </button>
-          )}
-          <button
-            onClick={() => setSoundEnabled(s => !s)}
-            className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            {soundEnabled ? 'Sound On' : 'Sound Off'}
-          </button>
-          <button
-            onClick={() => { onExit(); setOpen(false); }}
-            className="w-full flex items-center gap-3 px-4 py-3 font-mono text-sm hover:bg-blue-50 transition-colors text-left border-t border-black/10"
-          >
-            <LogOut size={16} /> Back to Menu
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, napoleonMode = false, soundEnabled, setSoundEnabled }) => {
+const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, napoleonMode = false, soundEnabled, setSoundEnabled, onRegisterActions, onGameOverChange }) => {
   const [gameState, setGameState] = useState({ turn: 'w', moves: [], isGameOver: false, result: null });
   const [boardKey, setBoardKey] = useState(0);
   const [chatMessage, setChatMessage] = useState(null);
@@ -634,14 +584,13 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
   }, [ghostBook, napoleonMode]);
 
   const handlePlayerMove = React.useCallback((data) => {
-    const result = generatePlayerMoveReaction(data, napoleonMode);
-    const { text, mood } = extractCommentary(result);
     if (napoleonMode) {
+      const result = generatePlayerMoveReaction(data, napoleonMode);
+      const { text, mood } = extractCommentary(result);
       // Store reaction — it will be delivered when Napoleon completes his next move
       pendingReactionRef.current = text ? { type: 'reaction', text, mood } : null;
-    } else {
-      if (text) setChatMessage({ type: 'reaction', text, mood });
     }
+    // Non-Napoleon: no chat response on player moves — only speak on AI moves
   }, [napoleonMode]);
 
   const handleRematch = () => {
@@ -667,6 +616,16 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
   const handleGameUpdate = React.useCallback((state) => {
     setGameState(state);
   }, []);
+
+  // Register resign/rematch actions with parent for navbar menu
+  useEffect(() => {
+    onRegisterActions?.({ resign: handleResign, rematch: handleRematch });
+  });
+
+  // Report game-over state to parent
+  useEffect(() => {
+    onGameOverChange?.(gameState.isGameOver);
+  }, [gameState.isGameOver, onGameOverChange]);
 
   // Auto-return to live when a new move arrives while reviewing
   const prevMoveLenRef = useRef(0);
@@ -757,34 +716,16 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
              OPPONENT: <span className="text-blue-600 font-bold">AI CLONE (WHITE)</span> vs <span className="text-black font-bold">{username} (BLACK)</span>
            </p>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
-          <div className={`${turnColor} text-white px-4 py-2 font-mono text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap`}>
-            {turnLabel}
-          </div>
-          <GameMenu
-            soundEnabled={soundEnabled}
-            setSoundEnabled={setSoundEnabled}
-            onResign={handleResign}
-            onRematch={handleRematch}
-            onExit={onExit}
-            isGameOver={gameState.isGameOver}
-          />
+        <div className={`${turnColor} text-white px-4 py-2 font-mono text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap`}>
+          {turnLabel}
         </div>
       </div>
 
       {/* Mobile-only slim turn bar */}
-      <div className="flex md:hidden justify-between items-center w-full mb-1 px-1">
+      <div className="flex md:hidden justify-center items-center w-full mb-1 px-1">
         <div className={`${turnColor} text-white px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap rounded-sm`}>
           {turnLabel}
         </div>
-        <GameMenu
-          soundEnabled={soundEnabled}
-          setSoundEnabled={setSoundEnabled}
-          onResign={handleResign}
-          onRematch={handleRematch}
-          onExit={onExit}
-          isGameOver={gameState.isGameOver}
-        />
       </div>
 
       {/* Main Game Layout — 3 columns on desktop: Notation | Board | AI Chat */}
@@ -860,6 +801,81 @@ const ChessGameInterface = ({ username, ghostBook, onExit, platform, avatarUrl, 
 };
 
 // --- GAME OVER MODAL ---
+
+const ManifestoModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#FDFBF7] border-l-4 border-blue-500 w-full max-w-2xl rounded-sm shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black transition-colors"
+        >
+          <X size={20} />
+        </button>
+        <div className="p-8 md:p-12">
+          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2">Manifesto</h2>
+          <p className="font-mono text-xs text-gray-400 uppercase tracking-widest mb-8">The Case for Playing Yourself</p>
+
+          <div className="space-y-6 font-mono text-sm leading-relaxed text-gray-700">
+            <p className="text-base text-black font-bold">
+              Your biggest opponent isn't the stranger across the board. It's the version of you that keeps making the same mistakes.
+            </p>
+
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-tight text-black mb-2">The Problem</h3>
+              <p>
+                Chess players grind thousands of games against random opponents online. They win some, lose some, and plateau. The cycle repeats. Rating stagnates. Improvement stalls. Why? Because you never study the one opponent you face in every single game: yourself.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-tight text-black mb-2">The Mirror Match</h3>
+              <p>
+                Chess Yourself builds an AI clone from your actual game history. It learns your opening preferences, your middlegame tendencies, your endgame habits. Then it plays them back at you. When you sit across from your own clone, every weakness is exposed. That pet Sicilian you always play? The clone plays it too — and now you have to break it. That kingside attack you always fall for? The clone will run it against you, move for move.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-tight text-black mb-2">Why It Works</h3>
+              <ul className="space-y-3 pl-4">
+                <li className="flex gap-3">
+                  <span className="text-blue-600 font-bold shrink-0">01</span>
+                  <span><strong className="text-black">Pattern recognition.</strong> You can't fix what you can't see. Playing your own style from the other side of the board reveals patterns that analysis tools miss — the human tendencies, the comfort zones, the autopilot moves.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-blue-600 font-bold shrink-0">02</span>
+                  <span><strong className="text-black">Targeted preparation.</strong> Instead of studying generic openings, you practice breaking the exact lines you play most. Every game against your clone is a rehearsal for beating your own worst habits.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-blue-600 font-bold shrink-0">03</span>
+                  <span><strong className="text-black">Ego-free feedback.</strong> There's no rating anxiety, no tilt, no excuses. It's just you versus you. If the clone beats you, it means your own playbook has holes. Patch them.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-blue-600 font-bold shrink-0">04</span>
+                  <span><strong className="text-black">Sparring before battle.</strong> Boxers don't step into the ring cold. They spar with partners who mimic their opponent's style. Your clone is that sparring partner — except it mimics <em>you</em>. Train against yourself, then go back online sharper than before.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-tight text-black mb-2">The Philosophy</h3>
+              <p>
+                Every chess engine can tell you the best move. None of them can tell you why <em>you</em> didn't play it. Chess Yourself closes that gap. It doesn't teach you how a grandmaster thinks — it shows you how <em>you</em> think, and challenges you to think better.
+              </p>
+            </div>
+
+            <p className="text-base text-black font-bold border-t-2 border-black pt-6">
+              Stop playing strangers. Start playing yourself. That's where the real improvement begins.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const GameOverModal = ({ gameState, onRematch, onExit }) => {
   const [visible, setVisible] = useState(false);
@@ -1154,8 +1170,13 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
   );
 };
 
-const FeatureCard = ({ title, desc, icon: Icon, number }) => (
-  <div className="border-4 border-black p-8 bg-white hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 group">
+const FeatureCard = ({ title, desc, icon: Icon, number, comingSoon }) => (
+  <div className="border-4 border-black p-8 bg-white hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 group relative">
+    {comingSoon && (
+      <span className="absolute top-3 right-3 bg-black text-white font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-1">
+        Coming Soon
+      </span>
+    )}
     <div className="flex justify-between items-start mb-6">
       <div className="bg-blue-500 text-white p-3 font-mono text-xl border-2 border-black">
         {number}
@@ -1223,6 +1244,7 @@ const GlitchText = ({ children }) => {
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
+  const [showManifesto, setShowManifesto] = useState(false);
   const [gameActive, setGameActive] = useState(false);
   const [activeUsername, setActiveUsername] = useState('');
   const [ghostBook, setGhostBook] = useState(null);
@@ -1230,6 +1252,8 @@ export default function Home() {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [activeMode, setActiveMode] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const gameActionsRef = useRef({});
 
   // Inline form state
   const [platform, setPlatform] = useState('chesscom');
@@ -1317,6 +1341,8 @@ export default function Home() {
     setAvatarUrl(null);
     setActiveMode(null);
     setIsLoading(false);
+    setIsGameOver(false);
+    gameActionsRef.current = {};
   };
 
   return (
@@ -1344,7 +1370,7 @@ export default function Home() {
           color: #2563eb;
         }
       `}</style>
-      <PixelHeader gameActive={gameActive} onExitGame={handleExitGame} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+      <PixelHeader gameActive={gameActive} onExitGame={handleExitGame} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} onResign={() => gameActionsRef.current.resign?.()} onRematch={() => gameActionsRef.current.rematch?.()} isGameOver={isGameOver} />
 
       {/* Hero Section */}
       <main className="relative min-h-[80vh]">
@@ -1459,7 +1485,7 @@ export default function Home() {
           </div>
         ) : (
           /* ACTIVE GAME VIEW */
-          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} napoleonMode={activeMode === 'napoleon'} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+          <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} napoleonMode={activeMode === 'napoleon'} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} onRegisterActions={(actions) => { gameActionsRef.current = actions; }} onGameOverChange={setIsGameOver} />
         )}
 
         {/* Dynamic Grid Visual (Always show at bottom of hero unless game is covering) */}
@@ -1492,11 +1518,12 @@ export default function Home() {
                   icon={User}
                   desc="Play against a ghost of your past games. It knows exactly when you get greedy and exactly how to punish your favorite gambit."
                 />
-                <FeatureCard 
+                <FeatureCard
                   number="03"
                   title="Weakness Heatmap"
                   icon={Grid3X3}
                   desc="Visualize your blind spots on a dynamic 8x8 grid. See where your intuition fails you and patch the holes in your logic."
+                  comingSoon
                 />
               </div>
             </div>
@@ -1505,10 +1532,14 @@ export default function Home() {
       </main>
 
       {/* Modals */}
-      <GameModal 
-        isOpen={showModal} 
-        onClose={() => setShowModal(false)} 
+      <GameModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
         onStart={handleGameStart}
+      />
+      <ManifestoModal
+        isOpen={showManifesto}
+        onClose={() => setShowManifesto(false)}
       />
 
       {/* Footer */}
@@ -1521,15 +1552,19 @@ export default function Home() {
             </div>
             
             <div className="flex gap-8 font-mono text-sm uppercase tracking-wide">
-              {['Manifesto', 'Login'].map((item) => (
-                <div key={item} className="group relative flex items-center gap-2 cursor-not-allowed text-gray-500 hover:text-gray-400 transition-colors">
-                  <span>{item}</span>
-                  <Lock size={14} />
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-3 py-1 border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    Coming Soon
-                  </div>
+              <button
+                onClick={() => setShowManifesto(true)}
+                className="flex items-center gap-2 text-white hover:text-blue-400 transition-colors"
+              >
+                Manifesto
+              </button>
+              <div className="group relative flex items-center gap-2 cursor-not-allowed text-gray-500 hover:text-gray-400 transition-colors">
+                <span>Login</span>
+                <Lock size={14} />
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-3 py-1 border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  Coming Soon
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </footer>
