@@ -206,8 +206,10 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       if (data === 'uciok') {
         if (napoleonMode) {
           worker.postMessage('setoption name Contempt value 100');
-          worker.postMessage('setoption name MultiPV value 3');
+        } else {
+          worker.postMessage('setoption name Skill Level value 3');
         }
+        worker.postMessage('setoption name MultiPV value 3');
         worker.postMessage('isready');
         return;
       }
@@ -217,8 +219,8 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
         return;
       }
 
-      // Napoleon mode: collect MultiPV candidate info lines
-      if (napoleonMode && data.startsWith('info') && data.includes('multipv') && data.includes(' pv ')) {
+      // Collect MultiPV candidate info lines (all modes)
+      if (data.startsWith('info') && data.includes('multipv') && data.includes(' pv ')) {
         const pvMatch = data.match(/multipv (\d+)/);
         const scoreMatch = data.match(/score cp (-?\d+)/);
         const pvMoves = data.match(/ pv (.+)/);
@@ -258,34 +260,46 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
       try {
         let chosenUci = bestMove;
 
-        // Napoleon mode: pick the most aggressive candidate within 150cp of the best
-        if (napoleonMode && candidatesRef.current.length > 1) {
+        if (candidatesRef.current.length > 1) {
           const candidates = [...candidatesRef.current].sort((a, b) => b.score - a.score);
           const bestScore = candidates[0].score;
-          const viable = candidates.filter(c => bestScore - c.score <= 150);
 
-          if (viable.length > 1) {
-            // Score aggressiveness for each viable candidate
-            let bestAggression = -1;
-            let bestCandidate = viable[0];
-
-            for (const cand of viable) {
-              try {
-                const probe = new Chess(currentGame.fen());
-                const m = probe.move({ from: cand.uci.substring(0, 2), to: cand.uci.substring(2, 4), promotion: cand.uci.length > 4 ? cand.uci.substring(4, 5) : 'q' });
-                if (!m) continue;
-                let aggro = 0;
-                if (m.san.includes('+') || m.san.includes('#')) aggro += 5;
-                if (m.piece === 'q') aggro += 3;
-                if (m.captured) aggro += 2;
-                if (m.piece === 'p' && m.to[1] >= '5') aggro += 1;
-                if (aggro > bestAggression) {
-                  bestAggression = aggro;
-                  bestCandidate = cand;
-                }
-              } catch (_) {}
+          if (napoleonMode) {
+            // Napoleon mode: pick the most aggressive candidate within 150cp of the best
+            const viable = candidates.filter(c => bestScore - c.score <= 150);
+            if (viable.length > 1) {
+              let bestAggression = -1;
+              let bestCandidate = viable[0];
+              for (const cand of viable) {
+                try {
+                  const probe = new Chess(currentGame.fen());
+                  const m = probe.move({ from: cand.uci.substring(0, 2), to: cand.uci.substring(2, 4), promotion: cand.uci.length > 4 ? cand.uci.substring(4, 5) : 'q' });
+                  if (!m) continue;
+                  let aggro = 0;
+                  if (m.san.includes('+') || m.san.includes('#')) aggro += 5;
+                  if (m.piece === 'q') aggro += 3;
+                  if (m.captured) aggro += 2;
+                  if (m.piece === 'p' && m.to[1] >= '5') aggro += 1;
+                  if (aggro > bestAggression) {
+                    bestAggression = aggro;
+                    bestCandidate = cand;
+                  }
+                } catch (_) {}
+              }
+              chosenUci = bestCandidate.uci;
             }
-            chosenUci = bestCandidate.uci;
+          } else {
+            // Clone mode: probabilistic selection — play human-like, not engine-perfect
+            const viable = candidates.filter(c => bestScore - c.score <= 200);
+            if (viable.length > 1) {
+              const weights = viable.map(c => Math.max(10, 200 - (bestScore - c.score)));
+              const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+              let roll = Math.random() * totalWeight;
+              for (let i = 0; i < viable.length; i++) {
+                roll -= weights[i];
+                if (roll <= 0) { chosenUci = viable[i].uci; break; }
+              }
+            }
           }
         }
         candidatesRef.current = [];
@@ -400,7 +414,7 @@ export default function PlayableBoard({ ghostBook = null, playerColor = 'black',
         stockfish.postMessage('stop');
       }
       stockfish.postMessage(`position fen ${game.fen()}`);
-      stockfish.postMessage('go depth 10');
+      stockfish.postMessage(napoleonMode ? 'go depth 10' : 'go depth 4');
       searchActiveRef.current = true;
 
       // Safety timeout: if no bestmove within 5s, make a random legal move

@@ -191,8 +191,8 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled, on
   }, [menuOpen]);
 
   return (
-    <header className={`w-full flex flex-row justify-between items-center py-4 md:py-6 px-6 md:px-12 ${gameActive ? 'border-b border-black/10' : 'border-b-4 border-black'} bg-[#FDFBF7] sticky top-0 z-40`}>
-      <div className="flex flex-col gap-2 md:gap-3">
+    <header className={`w-full flex flex-row justify-between items-center py-3 md:py-6 px-4 md:px-12 ${gameActive ? 'border-b border-black/10' : 'border-b-4 border-black'} bg-[#FDFBF7] sticky top-0 z-40`}>
+      <div className="flex flex-col gap-1.5 md:gap-3">
          <PixelWord word="CHESS" />
          <PixelWord word="YOURSELF" />
       </div>
@@ -247,25 +247,26 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled, on
   );
 };
 
-// --- DYNAMIC GRID ---
-const DynamicGrid = () => {
-  const rows = 6;
+// --- HERO BACKGROUND GRID ---
+const HeroBackgroundGrid = () => {
   const cols = 12;
+  const rows = 16;
   const [gridState, setGridState] = useState([]);
 
   useEffect(() => {
-    const initialGrid = Array(rows * cols).fill(0).map((_, i) => ({
-      id: i,
-      active: Math.random() > 0.7,
-      shape: Math.floor(Math.random() * 2),
-      color: Math.random() > 0.5 ? 'bg-blue-500' : 'bg-indigo-600'
-    }));
-    setGridState(initialGrid);
+    setGridState(
+      Array(rows * cols).fill(0).map((_, i) => ({
+        id: i,
+        active: Math.random() > 0.83,
+        shape: Math.floor(Math.random() * 2),
+        color: Math.random() > 0.5 ? 'bg-blue-500' : 'bg-indigo-600'
+      }))
+    );
   }, []);
 
   useInterval(() => {
     setGridState(prev => prev.map(cell => {
-      if (Math.random() > 0.95) {
+      if (Math.random() > 0.965) {
         return {
           ...cell,
           active: !cell.active,
@@ -275,22 +276,27 @@ const DynamicGrid = () => {
       }
       return cell;
     }));
-  }, 200);
+  }, 250);
+
+  if (gridState.length === 0) return null;
 
   return (
-    <div className="w-full overflow-hidden border-y-4 border-black bg-[#FDFBF7]">
-      <div 
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div
         className="grid w-full"
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, aspectRatio: `${cols}/${rows}` }}
+        style={{
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridAutoRows: `calc(100vw / ${cols})`,
+        }}
       >
         {gridState.map((cell) => (
-          <div 
-            key={cell.id} 
-            className={`w-full h-full border-[0.5px] border-black/10 flex items-center justify-center transition-all duration-500 ${cell.active ? 'bg-blue-100' : 'bg-transparent'}`}
+          <div
+            key={cell.id}
+            className={`w-full h-full border-[0.5px] border-black/[0.04] flex items-center justify-center transition-all duration-700 ${cell.active ? 'bg-blue-100/30' : 'bg-transparent'}`}
           >
             {cell.active && (
-              <div 
-                className={`w-[70%] h-[70%] transition-all duration-300 transform ${cell.color} ${cell.shape === 0 ? 'rounded-none' : 'rounded-full'} ${cell.shape === 0 ? 'rotate-0' : 'rotate-180'}`}
+              <div
+                className={`w-[60%] h-[60%] transition-all duration-500 ${cell.color} opacity-[0.12] ${cell.shape === 0 ? 'rounded-none' : 'rounded-full'}`}
               />
             )}
           </div>
@@ -1174,15 +1180,15 @@ const GameModal = ({ isOpen, onClose, onStart }) => {
 };
 
 const FeatureCard = ({ title, desc, icon: Icon, number, comingSoon }) => (
-  <div className="border-4 border-black p-8 bg-white hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 group relative">
-    <div className="flex justify-between items-start mb-6">
-      <div className="bg-blue-500 text-white p-3 font-mono text-xl border-2 border-black">
+  <div className="border-4 border-black p-5 md:p-8 bg-white hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 group relative">
+    <div className="flex justify-between items-start mb-4 md:mb-6">
+      <div className="bg-blue-500 text-white p-2 md:p-3 font-mono text-lg md:text-xl border-2 border-black">
         {number}
       </div>
-      <Icon size={32} className="text-black group-hover:rotate-12 transition-transform duration-300" />
+      <Icon size={28} className="text-black group-hover:rotate-12 transition-transform duration-300 md:w-8 md:h-8" />
     </div>
-    <h3 className="text-2xl font-black uppercase mb-4 tracking-tight">{title}</h3>
-    <p className="font-mono text-sm leading-relaxed text-gray-600">
+    <h3 className="text-xl md:text-2xl font-black uppercase mb-3 md:mb-4 tracking-tight">{title}</h3>
+    <p className="font-mono text-xs md:text-sm leading-relaxed text-gray-600">
       {desc}
     </p>
   </div>
@@ -1371,140 +1377,154 @@ export default function Home() {
       <PixelHeader gameActive={gameActive} onExitGame={handleExitGame} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} onResign={() => gameActionsRef.current.resign?.()} onRematch={() => gameActionsRef.current.rematch?.()} isGameOver={isGameOver} />
 
       {/* Hero Section */}
-      <main className="relative min-h-[80vh]">
+      <main className="relative">
         {!gameActive ? (
-          <div className="container mx-auto px-6 flex flex-col items-center text-center pt-16 pb-12 md:pt-28 md:pb-20">
-            {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9] mb-6">
-              Stop Playing<br />
-              <span className="text-[#2563eb]">Against</span> <GlitchText>Losers.</GlitchText>
-            </h1>
+          <div className="relative overflow-hidden">
+            {/* Animated grid background */}
+            <HeroBackgroundGrid />
 
-            {/* Subheadline */}
-            <p className="max-w-lg font-mono text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed mb-10 md:mb-14">
-              We trained an AI on your chess games. Master your own openings. Fix your blind spots. The ultimate training tool. <strong className="text-black">Can you beat yourself?</strong>
-            </p>
+            {/* Content panel */}
+            <div className="relative z-10 flex justify-center px-4 sm:px-6 pt-8 pb-8 md:pt-20 md:pb-16">
+              <div
+                className="w-full max-w-2xl bg-[#FDFBF7] px-4 sm:px-8 md:px-12 py-2 md:py-12 flex flex-col items-center text-center"
+                style={{ boxShadow: '0 0 60px 40px #FDFBF7' }}
+              >
+                {/* Headline */}
+                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] mb-3 md:mb-6">
+                  Stop Playing<br />
+                  <span className="text-[#2563eb]">Against</span> <GlitchText>Losers.</GlitchText>
+                </h1>
 
-            {/* CTA Form */}
-            <div className="w-full max-w-xl">
-              <form onSubmit={handleHeroSubmit} className="flex flex-col gap-4">
-                {/* Platform Toggle */}
-                <div className="flex justify-center gap-2 mb-1">
-                  {[
-                    { value: 'chesscom', label: 'Chess.com' },
-                    { value: 'lichess', label: 'Lichess' },
-                  ].map(({ value, label }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => { setPlatform(value); setError(''); }}
-                      className={`px-5 py-2 font-mono text-sm font-bold border-2 border-black transition-all duration-150 ${
-                        platform === value
-                          ? 'bg-black text-white'
-                          : 'bg-white text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                {/* Subheadline */}
+                <p className="max-w-lg font-mono text-xs sm:text-sm md:text-lg text-gray-600 leading-relaxed mb-6 md:mb-12">
+                  We trained an AI on your chess games. Master your own openings. Fix your blind spots. <strong className="text-black">Can you beat yourself?</strong>
+                </p>
 
-                {isLoading ? (
-                  <div>
-                    <div className="w-full p-4 border-2 border-green-500 bg-green-50 font-mono text-lg flex items-center justify-between mb-4">
-                      <span className="font-bold text-green-800">{usernameInput}</span>
-                      <Check size={18} className="text-green-600" />
+                {/* CTA Form */}
+                <div className="w-full max-w-xl">
+                  <form onSubmit={handleHeroSubmit} className="flex flex-col gap-3">
+                    {/* Platform Toggle */}
+                    <div className="flex justify-center gap-2">
+                      {[
+                        { value: 'chesscom', label: 'Chess.com' },
+                        { value: 'lichess', label: 'Lichess' },
+                      ].map(({ value, label }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => { setPlatform(value); setError(''); }}
+                          className={`px-4 py-1.5 md:px-5 md:py-2 font-mono text-xs md:text-sm font-bold border-2 border-black transition-all duration-150 ${
+                            platform === value
+                              ? 'bg-black text-white'
+                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
-                    <ThinkingLoader />
-                  </div>
-                ) : (
-                  <>
-                    {/* Input + Button Row */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <input
-                        type="text"
-                        placeholder={platform === 'chesscom' ? 'Enter Chess.com username' : 'Enter Lichess username'}
-                        value={usernameInput}
-                        onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
-                        className="flex-1 p-4 border-2 border-black font-mono text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white placeholder:text-gray-400"
-                      />
-                      <button
-                        type="submit"
-                        className="bg-blue-600 text-white px-8 py-4 font-mono font-bold uppercase tracking-widest border-2 border-blue-600 hover:bg-blue-700 hover:border-blue-700 transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                      >
-                        Clone Me <ArrowRight size={18} />
-                      </button>
-                    </div>
-                    <p className="font-mono text-[10px] text-gray-400 text-left -mt-2">Uses public game data only. No login required.</p>
 
-                    {error && (
-                      <div className="bg-red-100 border-l-4 border-red-500 p-3 flex items-center gap-2 text-red-700 font-mono text-xs text-left">
-                        <AlertCircle size={14} />
-                        {error}
+                    {isLoading ? (
+                      <div>
+                        <div className="w-full p-3 md:p-4 border-2 border-green-500 bg-green-50 font-mono text-base md:text-lg flex items-center justify-between mb-3">
+                          <span className="font-bold text-green-800">{usernameInput}</span>
+                          <Check size={18} className="text-green-600" />
+                        </div>
+                        <ThinkingLoader />
                       </div>
+                    ) : (
+                      <>
+                        {/* Input + Button Row */}
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                          <input
+                            type="text"
+                            placeholder={platform === 'chesscom' ? 'Enter Chess.com username' : 'Enter Lichess username'}
+                            value={usernameInput}
+                            onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
+                            className="flex-1 p-3 md:p-4 border-2 border-black font-mono text-base md:text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white placeholder:text-gray-400"
+                          />
+                          <button
+                            type="submit"
+                            className="bg-blue-600 text-white px-6 py-3 md:px-8 md:py-4 font-mono font-bold uppercase tracking-widest text-sm md:text-base border-2 border-blue-600 hover:bg-blue-700 hover:border-blue-700 transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                          >
+                            Clone Me <ArrowRight size={18} />
+                          </button>
+                        </div>
+                        <p className="font-mono text-[10px] text-gray-400 text-left">Uses public game data only. No login required.</p>
+
+                        {error && (
+                          <div className="bg-red-100 border-l-4 border-red-500 p-3 flex items-center gap-2 text-red-700 font-mono text-xs text-left">
+                            <AlertCircle size={14} />
+                            {error}
+                          </div>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </form>
+                  </form>
 
-              {/* Divider */}
-              <div className="mt-8 flex items-center gap-4 w-full">
-                <div className="flex-1 h-px bg-black/10" />
-                <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest">or try our featured bot</span>
-                <div className="flex-1 h-px bg-black/10" />
-              </div>
-
-              {/* Napoleon Card */}
-              <button
-                onClick={handleNapoleonClick}
-                className="mt-4 w-full border-2 border-black bg-white p-5 flex items-center gap-4 text-left hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all duration-200 group"
-              >
-                <div className="shrink-0">
-                  <NapoleonAvatar size={24} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-sm font-bold">Napoleon Bonaparte</span>
-                    <span className="font-mono text-[10px] bg-blue-600 text-white px-1.5 py-0.5 uppercase tracking-wider leading-none">Featured Clone</span>
+                  {/* Divider */}
+                  <div className="mt-5 md:mt-8 flex items-center gap-4 w-full">
+                    <div className="flex-1 h-px bg-black/10" />
+                    <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest whitespace-nowrap">or try our featured bot</span>
+                    <div className="flex-1 h-px bg-black/10" />
                   </div>
-                  <p className="font-mono text-xs text-gray-500 leading-relaxed">
-                    Built from Napoleon's real chess games, augmented with his battlefield tactics and military strategy. No account needed.
-                  </p>
-                </div>
-                <ArrowRight size={18} className="shrink-0 text-gray-400 group-hover:text-black group-hover:translate-x-1 transition-all" />
-              </button>
 
-              <button
-                onClick={() => setShowModal(true)}
-                className="mt-3 font-mono text-xs text-gray-400 hover:text-gray-600 underline decoration-1 underline-offset-2 transition-colors"
-              >
-                Advanced Options
-              </button>
+                  {/* Napoleon Card */}
+                  <button
+                    onClick={handleNapoleonClick}
+                    className="mt-3 md:mt-4 w-full border-2 border-black bg-white p-3 md:p-5 flex items-center gap-3 md:gap-4 text-left hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all duration-200 group"
+                  >
+                    <div className="shrink-0">
+                      <NapoleonAvatar size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 md:mb-1">
+                        <span className="font-mono text-xs md:text-sm font-bold">Napoleon Bonaparte</span>
+                        <span className="font-mono text-[9px] md:text-[10px] bg-blue-600 text-white px-1.5 py-0.5 uppercase tracking-wider leading-none">Featured</span>
+                      </div>
+                      <p className="font-mono text-[11px] md:text-xs text-gray-500 leading-relaxed hidden sm:block">
+                        Built from Napoleon's real chess games, augmented with military strategy. No account needed.
+                      </p>
+                      <p className="font-mono text-[11px] text-gray-500 sm:hidden">
+                        Play Napoleon's AI clone. No account needed.
+                      </p>
+                    </div>
+                    <ArrowRight size={18} className="shrink-0 text-gray-400 group-hover:text-black group-hover:translate-x-1 transition-all" />
+                  </button>
+
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="mt-2 md:mt-3 font-mono text-xs text-gray-400 hover:text-gray-600 underline decoration-1 underline-offset-2 transition-colors"
+                  >
+                    Advanced Options
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* Bottom border to transition into features */}
+            <div className="absolute bottom-0 left-0 right-0 h-[4px] bg-black z-10" />
           </div>
         ) : (
           /* ACTIVE GAME VIEW */
           <ChessGameInterface username={activeUsername} ghostBook={ghostBook} onExit={handleExitGame} platform={activePlatform} avatarUrl={avatarUrl} napoleonMode={activeMode === 'napoleon'} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} onRegisterActions={(actions) => { gameActionsRef.current = actions; }} onGameOverChange={setIsGameOver} />
         )}
 
-        {/* Dynamic Grid Visual (Always show at bottom of hero unless game is covering) */}
-        {!gameActive && <DynamicGrid />}
-
         {/* Value Proposition (Only show if game not active) */}
         {!gameActive && (
-          <section className="py-24 px-6 md:px-12 bg-white">
+          <section className="py-12 md:py-24 px-4 md:px-12 bg-white">
             <div className="container mx-auto">
-              <div className="flex flex-col md:flex-row justify-between items-end mb-16 border-b-4 border-black pb-8">
-                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter max-w-2xl">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-16 border-b-4 border-black pb-6 md:pb-8 gap-3">
+                <h2 className="text-3xl md:text-6xl font-black uppercase tracking-tighter max-w-2xl">
                   Your toughest opponent is in the mirror.
                 </h2>
-                <div className="mt-4 md:mt-0 font-mono text-sm text-right">
+                <div className="font-mono text-xs md:text-sm text-left md:text-right shrink-0">
                   Data Points: 1,002,491<br/>
                   Active Clones: 4,200
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
                 <FeatureCard 
                   number="01"
                   title="Style Extraction"
@@ -1543,10 +1563,10 @@ export default function Home() {
 
       {/* Footer */}
       {!gameActive && (
-        <footer className="bg-black text-white py-12 px-6 border-t-4 border-white">
+        <footer className="bg-black text-white py-8 md:py-12 px-4 md:px-6 border-t-4 border-white">
           <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-8 md:mb-0 text-center md:text-left">
-              <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Chess Yourself</h3>
+            <div className="mb-6 md:mb-0 text-center md:text-left">
+              <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter mb-1 md:mb-2">Chess Yourself</h3>
               <p className="font-mono text-xs text-gray-400">© 2026 SELF_PLAY SYSTEMS INC.</p>
             </div>
             
