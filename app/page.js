@@ -191,7 +191,7 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled, on
   }, [menuOpen]);
 
   return (
-    <header className={`w-full flex flex-row justify-between items-center py-3 md:py-6 px-4 md:px-12 ${gameActive ? 'border-b border-black/10' : 'border-b-4 border-black'} bg-[#FDFBF7] sticky top-0 z-40`}>
+    <header className={`w-full flex flex-row justify-between items-center py-2 md:py-6 px-4 md:px-12 ${gameActive ? 'border-b border-black/10' : 'border-b-4 border-black'} bg-[#FDFBF7] sticky top-0 z-40`}>
       <div className="flex flex-col gap-1.5 md:gap-3">
          <PixelWord word="CHESS" />
          <PixelWord word="YOURSELF" />
@@ -249,8 +249,8 @@ const PixelHeader = ({ gameActive, onExitGame, soundEnabled, setSoundEnabled, on
 
 // --- HERO BACKGROUND GRID ---
 const HeroBackgroundGrid = () => {
-  const cols = 12;
-  const rows = 16;
+  const cols = 14;
+  const rows = 20;
   const [gridState, setGridState] = useState([]);
 
   useEffect(() => {
@@ -1384,25 +1384,25 @@ export default function Home() {
             <HeroBackgroundGrid />
 
             {/* Content panel */}
-            <div className="relative z-10 flex justify-center px-4 sm:px-6 pt-8 pb-8 md:pt-20 md:pb-16">
+            <div className="relative z-10 flex justify-center px-4 sm:px-6 pt-6 pb-6 md:pt-12 md:pb-10">
               <div
-                className="w-full max-w-2xl bg-[#FDFBF7] px-4 sm:px-8 md:px-12 py-2 md:py-12 flex flex-col items-center text-center"
-                style={{ boxShadow: '0 0 60px 40px #FDFBF7' }}
+                className="w-full max-w-2xl bg-[#FDFBF7]/90 px-4 sm:px-8 md:px-12 py-2 md:py-8 flex flex-col items-center text-center"
+                style={{ boxShadow: '0 0 30px 16px rgba(253,251,247,0.9)' }}
               >
                 {/* Headline */}
-                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] mb-3 md:mb-6">
+                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] mb-3 md:mb-4">
                   Stop Playing<br />
                   <span className="text-[#2563eb]">Against</span> <GlitchText>Losers.</GlitchText>
                 </h1>
 
                 {/* Subheadline */}
-                <p className="max-w-lg font-mono text-xs sm:text-sm md:text-lg text-gray-600 leading-relaxed mb-6 md:mb-12">
+                <p className="max-w-lg font-mono text-xs sm:text-sm md:text-lg text-gray-600 leading-relaxed mb-4 md:mb-8">
                   We trained an AI on your chess games. Master your own openings. Fix your blind spots. <strong className="text-black">Can you beat yourself?</strong>
                 </p>
 
                 {/* CTA Form */}
                 <div className="w-full max-w-xl">
-                  <form onSubmit={handleHeroSubmit} className="flex flex-col gap-3">
+                  <form onSubmit={handleHeroSubmit} className="flex flex-col gap-2.5 md:gap-3">
                     {/* Platform Toggle */}
                     <div className="flex justify-center gap-2">
                       {[
@@ -1413,7 +1413,7 @@ export default function Home() {
                           key={value}
                           type="button"
                           onClick={() => { setPlatform(value); setError(''); }}
-                          className={`px-4 py-1.5 md:px-5 md:py-2 font-mono text-xs md:text-sm font-bold border-2 border-black transition-all duration-150 ${
+                          className={`px-3 py-1 md:px-5 md:py-2 font-mono text-xs md:text-sm font-bold border-2 border-black transition-all duration-150 ${
                             platform === value
                               ? 'bg-black text-white'
                               : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -1441,11 +1441,11 @@ export default function Home() {
                             placeholder={platform === 'chesscom' ? 'Enter Chess.com username' : 'Enter Lichess username'}
                             value={usernameInput}
                             onChange={(e) => { setUsernameInput(e.target.value); setError(''); }}
-                            className="flex-1 p-3 md:p-4 border-2 border-black font-mono text-base md:text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white placeholder:text-gray-400"
+                            className="flex-1 p-2.5 md:p-4 border-2 border-black font-mono text-base md:text-lg focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white placeholder:text-gray-400"
                           />
                           <button
                             type="submit"
-                            className="bg-blue-600 text-white px-6 py-3 md:px-8 md:py-4 font-mono font-bold uppercase tracking-widest text-sm md:text-base border-2 border-blue-600 hover:bg-blue-700 hover:border-blue-700 transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                            className="bg-blue-600 text-white px-5 py-2.5 md:px-8 md:py-4 font-mono font-bold uppercase tracking-widest text-sm md:text-base border-2 border-blue-600 hover:bg-blue-700 hover:border-blue-700 transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                           >
                             Clone Me <ArrowRight size={18} />
                           </button>
@@ -1463,7 +1463,7 @@ export default function Home() {
                   </form>
 
                   {/* Divider */}
-                  <div className="mt-5 md:mt-8 flex items-center gap-4 w-full">
+                  <div className="mt-4 md:mt-6 flex items-center gap-4 w-full">
                     <div className="flex-1 h-px bg-black/10" />
                     <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest whitespace-nowrap">or try our featured bot</span>
                     <div className="flex-1 h-px bg-black/10" />
@@ -1494,7 +1494,7 @@ export default function Home() {
 
                   <button
                     onClick={() => setShowModal(true)}
-                    className="mt-2 md:mt-3 font-mono text-xs text-gray-400 hover:text-gray-600 underline decoration-1 underline-offset-2 transition-colors"
+                    className="mt-1.5 md:mt-3 font-mono text-xs text-gray-400 hover:text-gray-600 underline decoration-1 underline-offset-2 transition-colors"
                   >
                     Advanced Options
                   </button>
